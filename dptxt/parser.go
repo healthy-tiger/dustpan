@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"strings"
 )
 
 // エラーメッセージ
@@ -53,16 +54,37 @@ func isNonColon(r rune) bool {
 
 type Document struct {
 	Filename string
-	Sections map[string]Section
+	Sections map[string]*Section
 }
 
 type Section struct {
-	Value       []Paragraph
+	Value       []*Paragraph
 	peekedValue string
 }
 
 type Paragraph struct {
 	Value [][]byte
+}
+
+func (p *Paragraph) String() string {
+	return string(bytes.Join(p.Value, []byte("\\n")))
+}
+
+func (s *Section) String() string {
+	buf := make([]string, 0, len(s.Value))
+	for _, p := range s.Value {
+		buf = append(buf, p.String())
+	}
+	return "\"" + strings.Join(buf, "\\n") + "\""
+}
+
+func (d *Document) String() string {
+	buf := make([]string, 0, len(d.Sections)+1)
+	buf = append(buf, d.Filename)
+	for n, v := range d.Sections {
+		buf = append(buf, "\""+n+"\":"+v.String())
+	}
+	return strings.Join(buf, ",")
 }
 
 func (s *Section) PeekValue() string {
@@ -183,8 +205,8 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 	return name, nil
 }
 
-func readCompoundValues(ls *lineScanner, head []byte) ([]Paragraph, error) {
-	values := make([]Paragraph, 0)
+func readCompoundValues(ls *lineScanner, head []byte) ([]*Paragraph, error) {
+	values := make([]*Paragraph, 0)
 	pvalues := make([][]byte, 0)
 	if head != nil {
 		pvalues = append(pvalues, head)
@@ -202,7 +224,7 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]Paragraph, error) {
 			}
 		} else {
 			if len(pvalues) > 0 {
-				values = append(values, Paragraph{pvalues})
+				values = append(values, &Paragraph{pvalues})
 				pvalues = make([][]byte, 0)
 			}
 		}
@@ -214,25 +236,28 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]Paragraph, error) {
 	}
 
 	if len(pvalues) > 0 {
-		values = append(values, Paragraph{pvalues})
+		values = append(values, &Paragraph{pvalues})
 	}
 	return values, nil
 }
 
-func ParseDocument(filename string, r io.Reader) (*Document, error) {
+func ParseDocument(filename string, r io.Reader, doc *Document) error {
 	ls := newLineScanner(r)
 
-	secs := make(map[string]Section)
-	var sec Section
-	name, err := processSection(ls, &sec)
+	secs := make(map[string]*Section)
+	var sec *Section = new(Section)
+	name, err := processSection(ls, sec)
 	for err == nil {
 		secs[name] = sec
-		name, err = processSection(ls, &sec)
+		sec = new(Section)
+		name, err = processSection(ls, sec)
 	}
 	if err != io.EOF {
-		return nil, err
+		return err
 	}
-	return &Document{filename, secs}, nil
+	doc.Filename = filename
+	doc.Sections = secs
+	return nil
 }
 
 func normalizeText(b []byte) (string, error) {

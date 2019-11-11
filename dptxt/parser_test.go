@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func compareParagraph(t *testing.T, a, b Paragraph) {
+func compareParagraph(t *testing.T, a, b *Paragraph) {
 	if len(a.Value) != len(b.Value) {
 		t.Error("Paragraph.Value", len(a.Value), len(b.Value))
 	} else {
@@ -19,7 +19,7 @@ func compareParagraph(t *testing.T, a, b Paragraph) {
 	}
 }
 
-func compareSection(t *testing.T, a, b Section) {
+func compareSection(t *testing.T, a, b *Section) {
 	if len(a.Value) != len(b.Value) {
 		t.Error("Section.Value", len(a.Value), len(b.Value))
 	} else {
@@ -34,7 +34,7 @@ func compareSection(t *testing.T, a, b Section) {
 	}
 }
 
-func compareDocument(t *testing.T, a, b Document) {
+func compareDocument(t *testing.T, a, b *Document) {
 	if a.Filename != b.Filename {
 		t.Error("Document.Filename", a.Filename, b.Filename)
 	}
@@ -72,10 +72,10 @@ func TestParseRaw(t *testing.T) {
 `
 	expected := Document{
 		"test1",
-		map[string]Section{
-			"test": Section{
-				[]Paragraph{
-					Paragraph{
+		map[string]*Section{
+			"test": &Section{
+				[]*Paragraph{
+					&Paragraph{
 						[][]byte{
 							[]byte("hello"),
 						},
@@ -83,9 +83,9 @@ func TestParseRaw(t *testing.T) {
 				},
 				"hello",
 			},
-			"date": Section{
-				[]Paragraph{
-					Paragraph{
+			"date": &Section{
+				[]*Paragraph{
+					&Paragraph{
 						[][]byte{
 							[]byte("2019/1/2"),
 						},
@@ -93,9 +93,9 @@ func TestParseRaw(t *testing.T) {
 				},
 				"2019/1/2",
 			},
-			"title": Section{
-				[]Paragraph{
-					Paragraph{
+			"title": &Section{
+				[]*Paragraph{
+					&Paragraph{
 						[][]byte{
 							[]byte("dptxt parse"),
 						},
@@ -103,16 +103,16 @@ func TestParseRaw(t *testing.T) {
 				},
 				"dptxt parse",
 			},
-			"description": Section{
-				[]Paragraph{
-					Paragraph{
+			"description": &Section{
+				[]*Paragraph{
+					&Paragraph{
 						[][]byte{
 							[]byte("ほんじつは、"),
 							[]byte("おひがらもよく、"),
 							[]byte("云々。。。"),
 						},
 					},
-					Paragraph{
+					&Paragraph{
 						[][]byte{
 							[]byte("あれこれ"),
 							[]byte("これそれ"),
@@ -121,9 +121,9 @@ func TestParseRaw(t *testing.T) {
 				},
 				"ほんじつは、",
 			},
-			"作者": Section{
-				[]Paragraph{
-					Paragraph{
+			"作者": &Section{
+				[]*Paragraph{
+					&Paragraph{
 						[][]byte{
 							[]byte("ボブ"),
 						},
@@ -131,9 +131,9 @@ func TestParseRaw(t *testing.T) {
 				},
 				"ボブ",
 			},
-			"compile option": Section{
-				[]Paragraph{
-					Paragraph{
+			"compile option": &Section{
+				[]*Paragraph{
+					&Paragraph{
 						[][]byte{
 							[]byte("-O2"),
 						},
@@ -141,17 +141,18 @@ func TestParseRaw(t *testing.T) {
 				},
 				"-O2",
 			},
-			"author": Section{
-				[]Paragraph{},
+			"author": &Section{
+				[]*Paragraph{},
 				"",
 			},
 		},
 	}
 
-	doc, err := ParseDocument("test1", bytes.NewBufferString(src))
+	var doc Document
+	err := ParseDocument("test1", bytes.NewBufferString(src), &doc)
 	if err != nil {
 		t.Error(err)
 	} else {
-		compareDocument(t, *doc, expected)
+		compareDocument(t, &doc, &expected)
 	}
 }
