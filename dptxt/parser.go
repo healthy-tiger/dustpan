@@ -16,9 +16,7 @@ var (
 	ErrorUnexpectedText               = errors.New("予期しない入力文字列です。")
 )
 
-const defaultSectionNameLen = 20
-const defaultSectionParagraphNum = 20
-const defaultParagraphLineNum = 10
+const empty = ""
 
 func isSp(r rune) bool {
 	if r == ' ' || r == '　' || r == '\t' {
@@ -55,16 +53,26 @@ func isNonColon(r rune) bool {
 
 type Document struct {
 	Filename string
-	Sections []Section
+	Sections map[string]Section
 }
 
 type Section struct {
-	Name  []byte
-	Value []Paragraph
+	Value       []Paragraph
+	peekedValue string
 }
 
 type Paragraph struct {
 	Value [][]byte
+}
+
+func (s *Section) PeekValue() string {
+	if len(s.Value) == 0 {
+		return empty
+	}
+	if s.peekedValue == empty {
+		s.peekedValue = string(s.Value[0].Value[0])
+	}
+	return s.peekedValue
 }
 
 type lineScanner struct {
@@ -84,9 +92,11 @@ func (ls *lineScanner) nextLine() ([]byte, error) {
 	}
 	if ls.scanner.Scan() {
 		b := ls.scanner.Bytes()
-		ls.lastline = b
+		t := make([]byte, len(b), len(b))
+		copy(t, b)
+		ls.lastline = t
 		ls.unread = false
-		return b, nil
+		return t, nil
 	}
 	err := ls.scanner.Err()
 	if err == nil {
@@ -126,35 +136,35 @@ func (ls *lineScanner) UnreadLine() bool {
 	return true
 }
 
-func processSection(ls *lineScanner) (*Section, error) {
+func processSection(ls *lineScanner, sec *Section) (string, error) {
 	// 空白行を読み飛ばす。
 	ls.SkipEmptyLines()
 	line, err := ls.nextLine()
 	if err != nil {
-		return nil, err
+		return empty, err
 	}
 	line = bytes.TrimLeftFunc(line, isSp)
 
 	// セクション名の始まり
 	i := bytes.IndexFunc(line, isAt)
 	if i != 0 {
-		return nil, ErrorNoSectionNamePrefix
+		return empty, ErrorNoSectionNamePrefix
 	}
 	line = line[i:]
 	i = bytes.IndexFunc(line, isNonAt)
 	if i == -1 {
-		return nil, ErrorSectionNameIsEmpty
+		return empty, ErrorSectionNameIsEmpty
 	}
 	line = line[i:]
 
 	// セクション名の終わり
 	i = bytes.IndexFunc(line, isColon)
 	if i == -1 { // コロンが見つからない
-		return nil, ErrorNoSectionNameSuffix
+		return empty, ErrorNoSectionNameSuffix
 	}
-	name := bytes.TrimFunc(line[:i], isSp) // セクション名の両端の空白を切り捨てる。
-	if len(name) == 0 {                    // セクション名が長さ0
-		return nil, ErrorSectionNameIsEmpty
+	name, err := normalizeText(line[:i]) // セクション名を正規化する。
+	if err != nil {
+		return empty, err
 	}
 	line = line[i:]
 
@@ -167,14 +177,15 @@ func processSection(ls *lineScanner) (*Section, error) {
 	}
 	ps, err := readCompoundValues(ls, head)
 	if err != nil {
-		return nil, err
+		return empty, err
 	}
-	return &Section{name, ps}, nil
+	*sec = Section{ps, empty}
+	return name, nil
 }
 
 func readCompoundValues(ls *lineScanner, head []byte) ([]Paragraph, error) {
-	values := make([]Paragraph, 0, defaultSectionParagraphNum)
-	pvalues := make([][]byte, 0, defaultParagraphLineNum)
+	values := make([]Paragraph, 0)
+	pvalues := make([][]byte, 0)
 	if head != nil {
 		pvalues = append(pvalues, head)
 	}
@@ -192,7 +203,7 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]Paragraph, error) {
 		} else {
 			if len(pvalues) > 0 {
 				values = append(values, Paragraph{pvalues})
-				pvalues = make([][]byte, 0, defaultParagraphLineNum)
+				pvalues = make([][]byte, 0)
 			}
 		}
 		line, err = ls.nextLine()
@@ -211,15 +222,35 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]Paragraph, error) {
 func ParseDocument(filename string, r io.Reader) (*Document, error) {
 	ls := newLineScanner(r)
 
-	secs := make([]Section, 0, 10)
-	var sec *Section
-	sec, err := processSection(ls)
+	secs := make(map[string]Section)
+	var sec Section
+	name, err := processSection(ls, &sec)
 	for err == nil {
-		secs = append(secs, *sec)
-		sec, err = processSection(ls)
+		secs[name] = sec
+		name, err = processSection(ls, &sec)
 	}
 	if err != io.EOF {
 		return nil, err
 	}
 	return &Document{filename, secs}, nil
+}
+
+func normalizeText(b []byte) (string, error) {
+	ps := make([][]byte, 0)
+	b = bytes.TrimLeftFunc(b, isSp)
+	for len(b) > 0 {
+		i := bytes.IndexFunc(b, isSp)
+		if i > 0 {
+			ps = append(ps, b[:i])
+			b = b[i:]
+		} else if i < 0 {
+			ps = append(ps, b)
+			break
+		}
+		b = bytes.TrimLeftFunc(b, isSp)
+	}
+	if len(ps) == 0 {
+		return empty, ErrorSectionNameIsEmpty
+	}
+	return string(bytes.Join(ps, []byte(" "))), nil
 }

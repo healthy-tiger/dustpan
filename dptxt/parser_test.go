@@ -20,14 +20,16 @@ func compareParagraph(t *testing.T, a, b Paragraph) {
 }
 
 func compareSection(t *testing.T, a, b Section) {
-	if !bytes.Equal(a.Name, b.Name) {
-		t.Error("Section.Name", string(a.Name), string(b.Name))
-	}
 	if len(a.Value) != len(b.Value) {
 		t.Error("Section.Value", len(a.Value), len(b.Value))
 	} else {
 		for i := 0; i < len(a.Value); i++ {
 			compareParagraph(t, a.Value[i], b.Value[i])
+		}
+		pa := a.PeekValue()
+		pb := b.PeekValue()
+		if pa != pb {
+			t.Error("Section.PeekValue", pa, pb)
 		}
 	}
 }
@@ -39,24 +41,39 @@ func compareDocument(t *testing.T, a, b Document) {
 	if len(a.Sections) != len(b.Sections) {
 		t.Error("Document.Sections", len(a.Sections), len(b.Sections))
 	} else {
-		for i := 0; i < len(a.Sections); i++ {
-			compareSection(t, a.Sections[i], b.Sections[i])
+		for k, v := range a.Sections {
+			bv, ok := b.Sections[k]
+			if !ok {
+				t.Error("Document.Sections a", k, a.Sections)
+				t.Error("Document.Sections b", k, b.Sections)
+			} else {
+				compareSection(t, v, bv)
+			}
 		}
 	}
 }
 
-func TestParse(t *testing.T) {
+func TestParseRaw(t *testing.T) {
 	src := `@test: hello
 @date: 2019/1/2
 @title: dptxt parse
 @description: ほんじつは、
 おひがらもよく、
-云々。。。`
+云々。。。
+
+あれこれ
+これそれ
+
+＠作者：ボブ
+@  compile 　	 option　  : -O2  
+
+@author:    
+
+`
 	expected := Document{
 		"test1",
-		[]Section{
-			Section{
-				[]byte("test"),
+		map[string]Section{
+			"test": Section{
 				[]Paragraph{
 					Paragraph{
 						[][]byte{
@@ -64,9 +81,9 @@ func TestParse(t *testing.T) {
 						},
 					},
 				},
+				"hello",
 			},
-			Section{
-				[]byte("date"),
+			"date": Section{
 				[]Paragraph{
 					Paragraph{
 						[][]byte{
@@ -74,9 +91,9 @@ func TestParse(t *testing.T) {
 						},
 					},
 				},
+				"2019/1/2",
 			},
-			Section{
-				[]byte("title"),
+			"title": Section{
 				[]Paragraph{
 					Paragraph{
 						[][]byte{
@@ -84,9 +101,9 @@ func TestParse(t *testing.T) {
 						},
 					},
 				},
+				"dptxt parse",
 			},
-			Section{
-				[]byte("description"),
+			"description": Section{
 				[]Paragraph{
 					Paragraph{
 						[][]byte{
@@ -95,7 +112,38 @@ func TestParse(t *testing.T) {
 							[]byte("云々。。。"),
 						},
 					},
+					Paragraph{
+						[][]byte{
+							[]byte("あれこれ"),
+							[]byte("これそれ"),
+						},
+					},
 				},
+				"ほんじつは、",
+			},
+			"作者": Section{
+				[]Paragraph{
+					Paragraph{
+						[][]byte{
+							[]byte("ボブ"),
+						},
+					},
+				},
+				"ボブ",
+			},
+			"compile option": Section{
+				[]Paragraph{
+					Paragraph{
+						[][]byte{
+							[]byte("-O2"),
+						},
+					},
+				},
+				"-O2",
+			},
+			"author": Section{
+				[]Paragraph{},
+				"",
 			},
 		},
 	}
