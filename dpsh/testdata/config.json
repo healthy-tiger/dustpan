@@ -1,0 +1,4 @@
+[
+	{ "name": "age", "order": true },
+	{ "name": "name", "order": false }
+]
