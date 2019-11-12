@@ -202,7 +202,7 @@ func DoMain(configpath string) {
 var nbyteToInt64 int
 
 func init() {
-	nbyteToInt64 = len(strconv.FormatInt(math.MaxInt64, 10))
+	nbyteToInt64 = len(strconv.FormatInt(math.MaxInt64, 10)) - 1
 }
 
 func bytesToInt64(b []byte) int64 {
