@@ -26,8 +26,8 @@ func compareSection(t *testing.T, a, b *Section) {
 		for i := 0; i < len(a.Value); i++ {
 			compareParagraph(t, a.Value[i], b.Value[i])
 		}
-		pa := a.PeekValue()
-		pb := b.PeekValue()
+		pa := a.PeekString()
+		pb := b.PeekString()
 		if pa != pb {
 			t.Error("Section.PeekValue", pa, pb)
 		}

@@ -19,6 +19,8 @@ var (
 
 const empty = ""
 
+var emptyBytes []byte = make([]byte, 0, 0)
+
 func isSp(r rune) bool {
 	if r == ' ' || r == '　' || r == '\t' {
 		return true
@@ -87,14 +89,27 @@ func (d *Document) String() string {
 	return strings.Join(buf, ",")
 }
 
-func (s *Section) PeekValue() string {
+func (s *Section) PeekString() string {
 	if len(s.Value) == 0 {
+		return empty
+	}
+	if len(s.Value[0].Value) == 0 {
 		return empty
 	}
 	if s.peekedValue == empty {
 		s.peekedValue = string(s.Value[0].Value[0])
 	}
 	return s.peekedValue
+}
+
+func (s *Section) PeekBytes() []byte {
+	if len(s.Value) == 0 {
+		return emptyBytes
+	}
+	if len(s.Value[0].Value) == 0 {
+		return emptyBytes
+	}
+	return s.Value[0].Value[0]
 }
 
 type lineScanner struct {
