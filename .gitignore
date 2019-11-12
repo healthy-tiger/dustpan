@@ -12,3 +12,8 @@
 *.out
 
 *.swp
+
+# executable
+dpsh/dpsh
+# testdata
+dpsh/out.csv
