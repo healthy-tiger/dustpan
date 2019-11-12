@@ -6,10 +6,13 @@ import (
 	"github.com/healthy-tiger/dustpan/dptxt"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 const csvExt = ".csv"
@@ -32,8 +35,9 @@ type DustpanConfig struct {
 }
 
 type SortConfig struct {
-	Name  string `json:"name"`
-	Order bool   `json:"order"` // trueなら昇順
+	Name       string `json:"name"`
+	Numerical  bool   `json:"numerical"`  // falseなら辞書式
+	Descending bool   `json:"descending"` // falseなら降順
 }
 
 func LoadConfig(filename string, config *DustpanConfig) error {
@@ -105,20 +109,33 @@ func SortDocs(config DustpanConfig, docs []*dptxt.Document) {
 		a := docs[i]
 		b := docs[j]
 		for _, c := range config.OrderBy {
-			// 対応するセクションがなければ空文字列として扱う。
-			av := ""
-			bv := ""
-			as, ok := a.Sections[c.Name]
-			if ok {
-				av = as.PeekValue()
+			var r int64
+			as := a.Sections[c.Name]
+			bs := b.Sections[c.Name]
+			if c.Numerical {
+				av := int64(0)
+				bv := int64(0)
+				if as != nil {
+					av = bytesToInt64(as.PeekBytes())
+				}
+				if bs != nil {
+					bv = bytesToInt64(bs.PeekBytes())
+				}
+				r = av - bv
+			} else {
+				// 対応するセクションがなければ空文字列として扱う。
+				av := ""
+				bv := ""
+				if as != nil {
+					av = as.PeekString()
+				}
+				if bs != nil {
+					bv = bs.PeekString()
+				}
+				r = int64(strings.Compare(av, bv))
 			}
-			bs, ok := b.Sections[c.Name]
-			if ok {
-				bv = bs.PeekValue()
-			}
-			r := strings.Compare(av, bv)
 			if r != 0 {
-				return (r < 0) == c.Order
+				return (r < 0) != c.Descending
 			}
 		}
 		return false
@@ -180,4 +197,32 @@ func DoMain(configpath string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+var nbyteToInt64 int
+
+func init() {
+	nbyteToInt64 = len(strconv.FormatInt(math.MaxInt64, 10))
+}
+
+func bytesToInt64(b []byte) int64 {
+	n := 0
+	var v int64 = 0
+	for len(b) > 0 && n < nbyteToInt64 {
+		r, s := utf8.DecodeRune(b)
+		v = v * 10
+		switch r {
+		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+			v += int64(r - '0')
+		case '０', '１', '２', '３', '４', '５', '６', '７', '８', '９':
+			v += int64(r - '０')
+		}
+		b = b[s:]
+		n++
+	}
+	return v
+}
+
+func numericCompare(a, b []byte) int {
+	return int(bytesToInt64(a) - bytesToInt64(b))
 }
