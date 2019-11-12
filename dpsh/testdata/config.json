@@ -1,4 +1,10 @@
-[
-	{ "name": "age", "order": true },
-	{ "name": "name", "order": false }
-]
+{
+	"src":[ "testdata/*.txt" ],
+	"dst":"out.csv",
+	"heading":true,
+	"order": [
+		{ "name": "age", "numerical": true },
+		{ "name": "name", "descending": true }
+	],
+	"columns": [ "name", "age", "hobby" ]
+}

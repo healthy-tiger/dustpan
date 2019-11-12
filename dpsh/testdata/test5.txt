@@ -1,0 +1,3 @@
+@name: jony
+@age: 32
+@hobby: video game
