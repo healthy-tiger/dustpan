@@ -1,11 +1,8 @@
 {
 	"src":[ "testdata/*.txt" ],
 	"csv": {
-		"dst":"both.csv",
+		"dst":"out.csv",
 		"heading":true
-	},
-	"html": {
-		"dst":"both.html"
 	},
 	"order": [
 		{ "name": "age", "numerical": true },
