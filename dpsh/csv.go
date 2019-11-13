@@ -3,9 +3,6 @@ package main
 import (
 	"bufio"
 	"github.com/healthy-tiger/dustpan/dptxt"
-	"io/ioutil"
-	"log"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -76,32 +73,17 @@ func WriteCsv(config *DustpanConfig, docs []*dptxt.Document) error {
 	}
 	dstname, err := filepath.Abs(config.Csv.DstPath)
 	if err != nil {
-		log.Fatal(config.Csv.DstPath, err)
+		return err
 	}
 
-	tmpfile, err := ioutil.TempFile("", "_dustpan_csv.*.tmp")
+	tmpfile, err := openTempFile("csv")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	// ファイルの後始末
-	defer (func() {
-		// とりあえず閉じて
-		tmpfile.Close()
-		// エラーがあればtmpfileを削除する
-		if err != nil {
-			os.Remove(tmpfile.Name())
-		} else {
-			// エラーがなければ、出力先ファイルにリネームして、パーミッションを変更する。
-			err = os.Rename(tmpfile.Name(), dstname)
-			if err != nil {
-				log.Fatal(err)
-			}
-			err = os.Chmod(dstname, 0644)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	})()
+	defer func() {
+		closeTempFile(dstname, tmpfile, err)
+	}()
 	w := bufio.NewWriter(tmpfile)
 
 	cols := make([]string, len(config.Columns))

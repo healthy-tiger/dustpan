@@ -6,7 +6,6 @@ import (
 	"github.com/healthy-tiger/dustpan/dptxt"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 )
 
@@ -122,32 +121,19 @@ func WriteHtml(config *DustpanConfig, docs []*dptxt.Document) error {
 	}
 	dstname, err := filepath.Abs(config.Html.DstPath)
 	if err != nil {
-		log.Fatal(config.Html.DstPath, err)
+		return err
 	}
 
-	tmpfile, err := ioutil.TempFile("", "_dustpan_html.*.tmp")
+	// 一時ファイルの生成
+	tmpfile, err := openTempFile("html")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	// ファイルの後始末
-	defer (func() {
-		// とりあえず閉じて
-		tmpfile.Close()
-		// エラーがあればtmpfileを削除する
-		if err != nil {
-			os.Remove(tmpfile.Name())
-		} else {
-			// エラーがなければ、出力先ファイルにリネームして、パーミッションを変更する。
-			err = os.Rename(tmpfile.Name(), dstname)
-			if err != nil {
-				log.Fatal(err)
-			}
-			err = os.Chmod(dstname, 0644)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	})()
+	defer func() {
+		closeTempFile(dstname, tmpfile, err)
+	}()
+
 	w := bufio.NewWriter(tmpfile)
 
 	title := config.Html.Title
@@ -166,22 +152,19 @@ func WriteHtml(config *DustpanConfig, docs []*dptxt.Document) error {
 		if err != nil {
 			log.Println(cssname, err)
 		} else {
-			cssbytes, err := ioutil.ReadFile(cssname)
+			var cssbytes []byte
+			cssbytes, err = ioutil.ReadFile(cssname)
+			if err == nil {
+				_, err = w.Write(styleOpen)
+			}
+			if err == nil {
+				_, err = w.Write(cssbytes)
+			}
+			if err == nil {
+				_, err = w.Write(styleClose)
+			}
 			if err != nil {
 				log.Println(cssname, err)
-			} else {
-				_, err = w.Write(styleOpen)
-				if err != nil {
-					return err
-				}
-				_, err = w.Write(cssbytes)
-				if err != nil {
-					return err
-				}
-				_, err = w.Write(styleClose)
-				if err != nil {
-					return err
-				}
 			}
 		}
 	}
