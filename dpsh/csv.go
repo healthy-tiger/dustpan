@@ -3,7 +3,10 @@ package main
 import (
 	"bufio"
 	"github.com/healthy-tiger/dustpan/dptxt"
+	"io/ioutil"
+	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -67,12 +70,42 @@ func csvWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Write
 	return nil
 }
 
-func WriteCsv(config *DustpanConfig, docs []*dptxt.Document, dst *os.File) error {
-	w := bufio.NewWriter(dst)
+func WriteCsv(config *DustpanConfig, docs []*dptxt.Document) error {
+	if len(config.Csv.DstPath) == 0 {
+		return nil
+	}
+	dstname, err := filepath.Abs(config.Csv.DstPath)
+	if err != nil {
+		log.Fatal(config.Csv.DstPath, err)
+	}
 
-	var err error
+	tmpfile, err := ioutil.TempFile("", "_dustpan_csv.*.tmp")
+	if err != nil {
+		log.Fatal(err)
+	}
+	// ファイルの後始末
+	defer (func() {
+		// とりあえず閉じて
+		tmpfile.Close()
+		// エラーがあればtmpfileを削除する
+		if err != nil {
+			os.Remove(tmpfile.Name())
+		} else {
+			// エラーがなければ、出力先ファイルにリネームして、パーミッションを変更する。
+			err = os.Rename(tmpfile.Name(), dstname)
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = os.Chmod(dstname, 0644)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	})()
+	w := bufio.NewWriter(tmpfile)
+
 	cols := make([]string, len(config.Columns))
-	if config.AddHeading {
+	if config.Csv.AddHeading {
 		for i, c := range config.Columns {
 			cols[i] = "\"" + c + "\""
 		}

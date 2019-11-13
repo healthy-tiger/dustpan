@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/healthy-tiger/dustpan/dptxt"
 	"io/ioutil"
 	"log"
@@ -15,10 +14,6 @@ import (
 	"unicode/utf8"
 )
 
-const csvExt = ".csv"
-const htmlExt = ".html"
-const htmExt = ".htm"
-
 var sepEmpty = []byte("")
 var sepComma = []byte(",")
 var sepNewline = []byte("\n")
@@ -26,12 +21,22 @@ var sep2Newline = []byte("\n\n")
 var sepDq = []byte("\"")
 
 type DustpanConfig struct {
-	SrcPath    []string     `json:"src"`
-	DstPath    string       `json:"dst"`
-	AddHeading bool         `json:"heading"`
-	CssPath    string       `json:"css"`
-	OrderBy    []SortConfig `json:"order"`
-	Columns    []string     `json:"columns"`
+	SrcPath []string     `json:"src"`
+	Html    HtmlConfig   `json:"html"`
+	Csv     CsvConfig    `json:"csv"`
+	OrderBy []SortConfig `json:"order"`
+	Columns []string     `json:"columns"`
+}
+
+type CsvConfig struct {
+	DstPath    string `json:"dst"`
+	AddHeading bool   `json:"heading"`
+}
+
+type HtmlConfig struct {
+	DstPath string `json:"dst"`
+	CssPath string `json:"css"`
+	Title   string `json:"title"`
 }
 
 type SortConfig struct {
@@ -154,48 +159,16 @@ func DoMain(configpath string) {
 		log.Fatal(configname, err)
 	}
 
-	dstname, err := filepath.Abs(config.DstPath)
-	if err != nil {
-		log.Fatal(config.DstPath, err)
-	}
-
 	docs := LoadAllFiles(config.SrcPath)
 	SortDocs(config, docs)
 
-	tmpfile, err := ioutil.TempFile("", "_dustpan.*.tmp")
+	err = WriteCsv(&config, docs)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
-	// ファイルの後始末
-	defer (func() {
-		// とりあえず閉じて
-		tmpfile.Close()
-		// エラーがあればtmpfileを削除する
-		if err != nil {
-			os.Remove(tmpfile.Name())
-		} else {
-			// エラーがなければ、出力先ファイルにリネームして、パーミッションを変更する。
-			err = os.Rename(tmpfile.Name(), dstname)
-			if err != nil {
-				log.Fatal(err)
-			}
-			err = os.Chmod(dstname, 0644)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	})()
-
-	// TODO ファイルの種類によって呼ぶ関数を変える。
-	switch filepath.Ext(dstname) {
-	case csvExt:
-		err = WriteCsv(&config, docs, tmpfile)
-	case htmlExt, htmExt:
-	default:
-		err = errors.New("Unsupported output filetype")
-	}
+	err = WriteHtml(&config, docs)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 }
 
@@ -216,6 +189,8 @@ func bytesToInt64(b []byte) int64 {
 			v += int64(r - '0')
 		case '０', '１', '２', '３', '４', '５', '６', '７', '８', '９':
 			v += int64(r - '０')
+		case utf8.RuneError:
+			return math.MaxInt64
 		}
 		b = b[s:]
 		n++
