@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/healthy-tiger/dustpan/dptxt"
 	"io/ioutil"
 	"log"
@@ -164,11 +165,11 @@ func DoMain(configpath string) {
 
 	err = WriteCsv(&config, docs)
 	if err != nil {
-		log.Println(err)
+		log.Println("csv", err)
 	}
 	err = WriteHtml(&config, docs)
 	if err != nil {
-		log.Println(err)
+		log.Println("html", err)
 	}
 }
 
@@ -200,4 +201,31 @@ func bytesToInt64(b []byte) int64 {
 
 func numericCompare(a, b []byte) int {
 	return int(bytesToInt64(a) - bytesToInt64(b))
+}
+
+const tempfile_template = "_dustpan_%s.*.tmp"
+
+func openTempFile(filetype string) (*os.File, error) {
+	return ioutil.TempFile("", fmt.Sprintf(tempfile_template, filetype))
+}
+
+func closeTempFile(dstname string, tmpfile *os.File, lasterr error) {
+	// とりあえず閉じて
+	tmpfile.Close()
+	// エラーがあればtmpfileを削除する
+	if lasterr != nil {
+		os.Remove(tmpfile.Name())
+	} else {
+		// エラーがなければ、出力先ファイルにリネームして、パーミッションを変更する。
+		err := os.Rename(tmpfile.Name(), dstname)
+		if err != nil {
+			os.Remove(tmpfile.Name())
+			log.Println(err)
+		} else {
+			err = os.Chmod(dstname, 0644)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}
 }
