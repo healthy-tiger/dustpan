@@ -96,7 +96,7 @@ func (s *Section) PeekString() string {
 	if len(s.Value[0].Value) == 0 {
 		return empty
 	}
-	if s.peekedValue == empty {
+	if len(s.peekedValue) == 0 {
 		s.peekedValue = string(s.Value[0].Value[0])
 	}
 	return s.peekedValue
