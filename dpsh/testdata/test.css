@@ -2,7 +2,24 @@ body {
 	font-size: 10pt;
 }
 
-table {
+.dp-table {
 	width: 100%;
+	display: table;
+}
+
+.dp-table .dp-header {
+	display: table-header-group;
+}
+
+.dp-table .dp-body {
+	display: table-row-group;
+}
+
+.dp-table .dp-row {
+	display: table-row;
+}
+
+.dp-table .dp-row .dp-cell {
+	display: table-cell;
 }
 

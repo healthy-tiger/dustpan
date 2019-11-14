@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/healthy-tiger/dustpan/dptxt"
+	"html"
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"time"
 )
 
 var br []byte = []byte("<br>")
@@ -14,23 +16,24 @@ var br []byte = []byte("<br>")
 var styleOpen = []byte(`<style type="text/css">`)
 var styleClose = []byte("</style>")
 
+var scriptOpen = []byte(`<script>`)
+var scriptClose = []byte("</script>")
+
 var pOpen []byte = []byte("<p>")
 var pClose []byte = []byte("</p>")
 
-var tdOpen []byte = []byte("<td>")
-var tdClose []byte = []byte("</td>")
+var tdOpenFmt string = `<div class="dp-cell c%d">`
+var tdClose []byte = []byte("</div>")
 
-var trOpen []byte = []byte("<tr>")
-var trClose []byte = []byte("</tr>")
+var trOpenFmt string = `<div class="dp-row" data-filename="%s">`
+var trOpen []byte = []byte(`<div class="dp-row">`)
+var trClose []byte = []byte("</div>")
 
-var thOpen []byte = []byte("<th>")
-var thClose []byte = []byte("</th>")
+var theadOpen []byte = []byte(`<div class="dp-header">`)
+var theadClose []byte = []byte("</div>")
 
-var theadOpen []byte = []byte("<thead>")
-var theadClose []byte = []byte("</thead>")
-
-var tbodyOpen []byte = []byte("<tbody>")
-var tbodyClose []byte = []byte("</tbody>")
+var tbodyOpen []byte = []byte(`<div class="dp-body">`)
+var tbodyClose []byte = []byte("</div>")
 
 const defaultTitle = "Dustpan HTML"
 
@@ -43,10 +46,10 @@ var contentOpen1 string = `<!DOCTYPE html>
 
 var contentOpen2 string = `
 </head>
-<body>
-<table>`
+<body data-update="%d/%d/%d">
+<div class="dp-table">`
 
-var contentClose string = `</table>
+var contentClose string = `</div>
 </body>
 </html>`
 
@@ -58,7 +61,7 @@ func htmlWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
 		if err != nil {
 			return err
 		}
-		_, err = w.Write(v)
+		_, err = w.Write(v) // TODO vのエスケープ
 		if err != nil {
 			return err
 		}
@@ -67,7 +70,7 @@ func htmlWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
 	return nil
 }
 
-func htmlWriteSection(sec *dptxt.Section, w *bufio.Writer) error {
+func htmlWriteSection(sec *dptxt.Section, tdOpen []byte, w *bufio.Writer) error {
 	_, err := w.Write(tdOpen)
 	if err != nil {
 		return err
@@ -96,14 +99,14 @@ func htmlWriteSection(sec *dptxt.Section, w *bufio.Writer) error {
 	return nil
 }
 
-func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Writer) error {
+func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, tdOpenMap map[string][]byte, w *bufio.Writer) error {
 	var err error
-	_, err = w.Write(trOpen)
+	_, err = w.WriteString(fmt.Sprintf(trOpenFmt, html.EscapeString(doc.Filename)))
 	if err != nil {
 		return err
 	}
 	for _, cname := range config.Columns {
-		err = htmlWriteSection(doc.Sections[cname], w)
+		err = htmlWriteSection(doc.Sections[cname], tdOpenMap[cname], w)
 		if err != nil {
 			return err
 		}
@@ -150,7 +153,7 @@ func WriteHtml(config *DustpanConfig, docs []*dptxt.Document) error {
 	if len(config.Html.CssPath) > 0 {
 		cssname, err := filepath.Abs(config.Html.CssPath)
 		if err != nil {
-			log.Println(cssname, err)
+			log.Println(config.Html.CssPath, err)
 		} else {
 			var cssbytes []byte
 			cssbytes, err = ioutil.ReadFile(cssname)
@@ -169,10 +172,36 @@ func WriteHtml(config *DustpanConfig, docs []*dptxt.Document) error {
 		}
 	}
 
-	_, err = w.WriteString(contentOpen2)
+	if len(config.Html.JsPath) > 0 {
+		jsname, err := filepath.Abs(config.Html.JsPath)
+		if err != nil {
+			log.Println(config.Html.JsPath, err)
+		} else {
+			var jsbytes []byte
+			jsbytes, err = ioutil.ReadFile(jsname)
+			if err == nil {
+				_, err = w.Write(scriptOpen)
+			}
+			if err == nil {
+				_, err = w.Write(jsbytes)
+			}
+			if err == nil {
+				_, err = w.Write(scriptClose)
+			}
+			if err != nil {
+				log.Println(jsname, err)
+			}
+		}
+	}
+
+	year, month, day := time.Now().Date()
+	_, err = w.WriteString(fmt.Sprintf(contentOpen2, year, month, day))
 	if err != nil {
 		return err
 	}
+
+	// あとでドキュメントの出力に使うので、カラムの開始タグをキャッシュする。
+	tdOpenMap := make(map[string][]byte)
 
 	// theadを出力する。
 	_, err = w.Write(theadOpen)
@@ -183,8 +212,10 @@ func WriteHtml(config *DustpanConfig, docs []*dptxt.Document) error {
 	if err != nil {
 		return err
 	}
-	for _, c := range config.Columns {
-		_, err = w.Write(thOpen)
+	for i, c := range config.Columns {
+		tdOpen := []byte(fmt.Sprintf(tdOpenFmt, i))
+
+		_, err = w.Write(tdOpen)
 		if err != nil {
 			return err
 		}
@@ -192,10 +223,12 @@ func WriteHtml(config *DustpanConfig, docs []*dptxt.Document) error {
 		if err != nil {
 			return err
 		}
-		_, err = w.Write(thClose)
+		_, err = w.Write(tdClose)
 		if err != nil {
 			return err
 		}
+
+		tdOpenMap[c] = tdOpen // キャッシュに入れる。
 	}
 	_, err = w.Write(trClose)
 	if err != nil {
@@ -211,7 +244,7 @@ func WriteHtml(config *DustpanConfig, docs []*dptxt.Document) error {
 		return err
 	}
 	for _, d := range docs {
-		err = htmlWriteDocument(config, d, w)
+		err = htmlWriteDocument(config, d, tdOpenMap, w)
 		if err != nil {
 			return err
 		}

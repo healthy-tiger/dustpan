@@ -3,7 +3,8 @@
 	"html": {
 		"title": "testdata",
 		"dst":"out.html",
-		"css":"testdata/test.css"
+		"css":"testdata/test.css",
+		"js":"testdata/test.js"
 	},
 	"order": [
 		{ "name": "age", "numerical": true },

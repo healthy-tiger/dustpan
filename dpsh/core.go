@@ -37,6 +37,7 @@ type CsvConfig struct {
 type HtmlConfig struct {
 	DstPath string `json:"dst"`
 	CssPath string `json:"css"`
+	JsPath  string `json:"js"`
 	Title   string `json:"title"`
 }
 
