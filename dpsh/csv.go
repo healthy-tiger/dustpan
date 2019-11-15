@@ -67,14 +67,11 @@ func csvWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Write
 	return nil
 }
 
-func WriteCsv(config *DustpanConfig, docs []*dptxt.Document) error {
+func WriteCsv(basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
 	if len(config.Csv.DstPath) == 0 {
 		return nil
 	}
-	dstname, err := filepath.Abs(config.Csv.DstPath)
-	if err != nil {
-		return err
-	}
+	dstname := filepath.Clean(filepath.Join(basepath, config.Csv.DstPath))
 
 	tmpfile, err := openTempFile("csv")
 	if err != nil {

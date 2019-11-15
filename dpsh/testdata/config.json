@@ -1,5 +1,5 @@
 {
-	"src":[ "testdata/*.txt" ],
+	"src":[ "*.txt" ],
 	"csv": {
 		"dst":"both.csv",
 		"heading":true

@@ -67,25 +67,21 @@ func LoadConfig(filename string, config *DustpanConfig) error {
 	return nil
 }
 
-func LoadAllFiles(paths []string) []*dptxt.Document {
+func LoadAllFiles(basepath string, paths []string) []*dptxt.Document {
 	docs := make([]*dptxt.Document, 0)
 	for _, p := range paths {
-		ap, err := filepath.Abs(p)
+		ap := filepath.Clean(filepath.Join(basepath, p))
+		gp, err := filepath.Glob(ap)
 		if err != nil {
-			log.Println(p, err)
+			log.Println(ap, err)
 		} else {
-			gp, err := filepath.Glob(ap)
-			if err != nil {
-				log.Println(ap, err)
-			} else {
-				for _, g := range gp {
-					var doc *dptxt.Document = new(dptxt.Document)
-					err := LoadFile(g, doc)
-					if err != nil {
-						log.Println(g, err)
-					} else {
-						docs = append(docs, doc)
-					}
+			for _, g := range gp {
+				var doc *dptxt.Document = new(dptxt.Document)
+				err := LoadFile(g, doc)
+				if err != nil {
+					log.Println(g, err)
+				} else {
+					docs = append(docs, doc)
 				}
 			}
 		}
@@ -161,14 +157,16 @@ func DoMain(configpath string) {
 		log.Fatal(configname, err)
 	}
 
-	docs := LoadAllFiles(config.SrcPath)
+	basepath := filepath.Dir(configname)
+
+	docs := LoadAllFiles(basepath, config.SrcPath)
 	SortDocs(config, docs)
 
-	err = WriteCsv(&config, docs)
+	err = WriteCsv(basepath, &config, docs)
 	if err != nil {
 		log.Println("csv", err)
 	}
-	err = WriteHtml(&config, docs)
+	err = WriteHtml(basepath, &config, docs)
 	if err != nil {
 		log.Println("html", err)
 	}

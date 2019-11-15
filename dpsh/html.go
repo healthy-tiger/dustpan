@@ -118,14 +118,11 @@ func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, tdOpenMap map
 	return nil
 }
 
-func WriteHtml(config *DustpanConfig, docs []*dptxt.Document) error {
+func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
 	if len(config.Html.DstPath) == 0 {
 		return nil
 	}
-	dstname, err := filepath.Abs(config.Html.DstPath)
-	if err != nil {
-		return err
-	}
+	dstname := filepath.Clean(filepath.Join(basepath, config.Html.DstPath))
 
 	// 一時ファイルの生成
 	tmpfile, err := openTempFile("html")
@@ -151,46 +148,36 @@ func WriteHtml(config *DustpanConfig, docs []*dptxt.Document) error {
 
 	// CSSの指定があれば読み込んで埋め込む。読み込みエラーがあっても中断はしない。
 	if len(config.Html.CssPath) > 0 {
-		cssname, err := filepath.Abs(config.Html.CssPath)
+		cssname := filepath.Clean(filepath.Join(basepath, config.Html.CssPath))
+		cssbytes, err := ioutil.ReadFile(cssname)
+		if err == nil {
+			_, err = w.Write(styleOpen)
+		}
+		if err == nil {
+			_, err = w.Write(cssbytes)
+		}
+		if err == nil {
+			_, err = w.Write(styleClose)
+		}
 		if err != nil {
-			log.Println(config.Html.CssPath, err)
-		} else {
-			var cssbytes []byte
-			cssbytes, err = ioutil.ReadFile(cssname)
-			if err == nil {
-				_, err = w.Write(styleOpen)
-			}
-			if err == nil {
-				_, err = w.Write(cssbytes)
-			}
-			if err == nil {
-				_, err = w.Write(styleClose)
-			}
-			if err != nil {
-				log.Println(cssname, err)
-			}
+			log.Println(cssname, err)
 		}
 	}
 
 	if len(config.Html.JsPath) > 0 {
-		jsname, err := filepath.Abs(config.Html.JsPath)
+		jsname := filepath.Clean(filepath.Join(basepath, config.Html.JsPath))
+		jsbytes, err := ioutil.ReadFile(jsname)
+		if err == nil {
+			_, err = w.Write(scriptOpen)
+		}
+		if err == nil {
+			_, err = w.Write(jsbytes)
+		}
+		if err == nil {
+			_, err = w.Write(scriptClose)
+		}
 		if err != nil {
-			log.Println(config.Html.JsPath, err)
-		} else {
-			var jsbytes []byte
-			jsbytes, err = ioutil.ReadFile(jsname)
-			if err == nil {
-				_, err = w.Write(scriptOpen)
-			}
-			if err == nil {
-				_, err = w.Write(jsbytes)
-			}
-			if err == nil {
-				_, err = w.Write(scriptClose)
-			}
-			if err != nil {
-				log.Println(jsname, err)
-			}
+			log.Println(jsname, err)
 		}
 	}
 

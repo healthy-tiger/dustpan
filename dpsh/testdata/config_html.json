@@ -1,10 +1,10 @@
 {
-	"src":[ "testdata/*.txt" ],
+	"src":[ "*.txt" ],
 	"html": {
 		"title": "testdata",
 		"dst":"out.html",
-		"css":"testdata/test.css",
-		"js":"testdata/test.js"
+		"css":"test.css",
+		"js":"test.js"
 	},
 	"order": [
 		{ "name": "age", "numerical": true },
