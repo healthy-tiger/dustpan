@@ -82,6 +82,7 @@ func TestParseRaw(t *testing.T) {
 					},
 				},
 				"hello",
+				nil,
 			},
 			"date": &Section{
 				[]*Paragraph{
@@ -92,6 +93,7 @@ func TestParseRaw(t *testing.T) {
 					},
 				},
 				"2019/1/2",
+				nil,
 			},
 			"title": &Section{
 				[]*Paragraph{
@@ -102,6 +104,7 @@ func TestParseRaw(t *testing.T) {
 					},
 				},
 				"dptxt parse",
+				nil,
 			},
 			"description": &Section{
 				[]*Paragraph{
@@ -120,6 +123,7 @@ func TestParseRaw(t *testing.T) {
 					},
 				},
 				"ほんじつは、",
+				nil,
 			},
 			"作者": &Section{
 				[]*Paragraph{
@@ -130,6 +134,7 @@ func TestParseRaw(t *testing.T) {
 					},
 				},
 				"ボブ",
+				nil,
 			},
 			"compile option": &Section{
 				[]*Paragraph{
@@ -140,12 +145,15 @@ func TestParseRaw(t *testing.T) {
 					},
 				},
 				"-O2",
+				nil,
 			},
 			"author": &Section{
 				[]*Paragraph{},
 				"",
+				nil,
 			},
 		},
+		nil,
 	}
 
 	var doc Document
@@ -154,5 +162,43 @@ func TestParseRaw(t *testing.T) {
 		t.Error(err)
 	} else {
 		compareDocument(t, &doc, &expected)
+	}
+}
+
+func TestParseDate(t *testing.T) {
+	dates := [][]byte{
+		[]byte("2019/11/13"),
+		[]byte("2019-11-13"),
+		[]byte("2019.11.13"),
+		[]byte("2019年11月13日"),
+	}
+	dates2 := [][]byte{
+		[]byte("2003/01/03"),
+		[]byte("2003-01-03"),
+		[]byte("2003.01.03"),
+		[]byte("2003/1/3"),
+		[]byte("2003-1-3"),
+		[]byte("2003.1.3"),
+		[]byte("2003年1月3日"),
+		[]byte("2003年01月03日"),
+	}
+
+	for _, d := range dates {
+		year, month, day, err := ParseDate(d)
+		if err != nil {
+			t.Error(string(d), year, month, day, err)
+		}
+		if year != 2019 || month != 11 || day != 13 {
+			t.Error(string(d), year, month, day, err)
+		}
+	}
+	for _, d := range dates2 {
+		year, month, day, err := ParseDate(d)
+		if err != nil {
+			t.Error(string(d), year, month, day, err)
+		}
+		if year != 2003 || month != 1 || day != 3 {
+			t.Error(string(d), year, month, day, err)
+		}
 	}
 }

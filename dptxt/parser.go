@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"unicode/utf8"
 )
 
 // エラーメッセージ
@@ -15,6 +16,11 @@ var (
 	ErrorNoSectionNameSuffix          = errors.New("セクション名サフィックスがありません。")
 	ErrorSectionNameIsEmpty           = errors.New("セクション名が空です。")
 	ErrorUnexpectedText               = errors.New("予期しない入力文字列です。")
+	ErrorInvalidDateFormat            = errors.New("不正な日付の書式")
+	ErrorYearIsOutOfRange             = errors.New("無効な年")
+	ErrorMonthIsOutOfRange            = errors.New("無効な月")
+	ErrorInvalidMonthSuffix           = errors.New("月のサフィックスが間違っている")
+	ErrorInvalidDaySuffix             = errors.New("日付けのサフィックスが間違っている")
 )
 
 const empty = ""
@@ -28,19 +34,11 @@ func isSp(r rune) bool {
 	return false
 }
 
-func isNonSp(r rune) bool {
-	return !isSp(r)
-}
-
 func isAt(r rune) bool {
 	if r == '@' || r == '＠' {
 		return true
 	}
 	return false
-}
-
-func isNonAt(r rune) bool {
-	return !isAt(r)
 }
 
 func isColon(r rune) bool {
@@ -50,18 +48,16 @@ func isColon(r rune) bool {
 	return false
 }
 
-func isNonColon(r rune) bool {
-	return !isColon(r)
-}
-
 type Document struct {
 	Filename string
 	Sections map[string]*Section
+	Error    error
 }
 
 type Section struct {
 	Value       []*Paragraph
 	peekedValue string
+	Error       error
 }
 
 type Paragraph struct {
@@ -183,19 +179,14 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 	line = bytes.TrimLeftFunc(line, isSp)
 
 	// セクション名の始まり
-	i := bytes.IndexFunc(line, isAt)
+	i, s := IndexFuncWithSize(line, isAt)
 	if i != 0 {
 		return empty, ErrorNoSectionNamePrefix
 	}
-	line = line[i:]
-	i = bytes.IndexFunc(line, isNonAt)
-	if i == -1 {
-		return empty, ErrorSectionNameIsEmpty
-	}
-	line = line[i:]
+	line = line[i+s:]
 
 	// セクション名の終わり
-	i = bytes.IndexFunc(line, isColon)
+	i, s = IndexFuncWithSize(line, isColon)
 	if i == -1 { // コロンが見つからない
 		return empty, ErrorNoSectionNameSuffix
 	}
@@ -203,20 +194,19 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 	if err != nil {
 		return empty, err
 	}
-	line = line[i:]
+	line = line[i+s:]
 
 	// セクション本文の始まり
-	i = bytes.IndexFunc(line, isNonColon)
 	var head []byte = nil
-	if i != -1 {
-		// lineをトリミングしてあるので、必ずなにか文字列があるはず。
-		head = bytes.TrimFunc(line[i:], isSp)
+	line = bytes.TrimFunc(line, isSp)
+	if len(line) > 0 {
+		head = line
 	}
 	ps, err := readCompoundValues(ls, head)
 	if err != nil {
 		return empty, err
 	}
-	*sec = Section{ps, empty}
+	*sec = Section{ps, empty, nil}
 	return name, nil
 }
 
@@ -293,4 +283,147 @@ func normalizeText(b []byte) (string, error) {
 		return empty, ErrorSectionNameIsEmpty
 	}
 	return string(bytes.Join(ps, []byte(" "))), nil
+}
+
+func IndexFuncWithSize(b []byte, f func(r rune) bool) (int, int) {
+	i := 0
+	for len(b) > 0 {
+		r, s := utf8.DecodeRune(b)
+		if f(r) {
+			return i, s
+		}
+		i += s
+		b = b[s:]
+	}
+	return -1, 0
+}
+
+func DecodeDigit(b []byte) (rune, int, int) {
+	r, s := utf8.DecodeRune(b)
+	switch r {
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		return r, int(r - '0'), s
+	case '０', '１', '２', '３', '４', '５', '６', '７', '８', '９':
+		return r, int(r - '０'), s
+	default:
+		return r, -1, s
+	}
+}
+
+// 年のサフィックスから月のサフィックスへのマップ
+var year2monthSuffix map[rune]rune = map[rune]rune{
+	'年': '月',
+	'/': '/',
+	'／': '/',
+	'-': '-',
+	'ー': '-',
+	'.': '.',
+	'．': '.',
+}
+
+// 月のサフィックスを正規化するためのマップ
+var monthSuffixes map[rune]rune = map[rune]rune{
+	'月': '月',
+	'/': '/',
+	'／': '/',
+	'-': '-',
+	'ー': '-',
+	'.': '.',
+	'．': '.',
+}
+
+func ParseDate(b []byte) (int, int, int, error) {
+	b = bytes.TrimLeftFunc(b, isSp)
+
+	var (
+		year, month, day       int = 0, 0, 0
+		monthsuffix, daysuffix rune
+		r                      rune
+		v, s                   int
+		n                      int = 0
+	)
+
+	for n < 4 {
+		r, v, s = DecodeDigit(b)
+		b = b[s:]
+		if v < 0 { // 数字じゃない。
+			break
+		}
+		year = year*10 + v
+		n++
+	}
+	if r == utf8.RuneError || n != 4 {
+		return year, month, day, ErrorInvalidDateFormat
+	}
+	// 年のサフィックス('年')の部分を読む
+	r, s = utf8.DecodeRune(b)
+	if r == utf8.RuneError {
+		return year, month, day, ErrorInvalidDateFormat
+	}
+	b = b[s:]
+
+	monthsuffix, ok := year2monthSuffix[r]
+	if !ok {
+		return year, month, day, ErrorInvalidDateFormat
+	}
+	if r == '年' {
+		daysuffix = '日'
+	} else {
+		daysuffix = 0
+	}
+
+	n = 0
+	for n < 2 {
+		r, v, s = DecodeDigit(b)
+		b = b[s:]
+		if v < 0 {
+			break
+		}
+		month = month*10 + v
+		n++
+	}
+
+	if r == utf8.RuneError {
+		return year, month, day, ErrorInvalidDateFormat
+	}
+	if n == 2 { // 二桁の時は月のサフィックスを追加で読み込む
+		r, s = utf8.DecodeRune(b)
+		if r == utf8.RuneError {
+			return year, month, day, ErrorInvalidDateFormat
+		}
+		b = b[s:]
+	}
+	if ms, ok := monthSuffixes[r]; !ok || ms != monthsuffix {
+		return year, month, day, ErrorInvalidMonthSuffix
+	}
+	if month < 1 || month > 12 {
+		return year, month, day, ErrorMonthIsOutOfRange
+	}
+
+	n = 0
+	for n < 2 {
+		r, v, s = DecodeDigit(b)
+		b = b[s:]
+		if v < 0 {
+			break
+		}
+		day = day*10 + v
+		n++
+	}
+
+	if daysuffix != 0 {
+		if r == utf8.RuneError {
+			return year, month, day, ErrorInvalidDateFormat
+		}
+		if n == 2 { // 二桁の時は日のサフィックスを追加で読み込む
+			r, s = utf8.DecodeRune(b)
+			if r == utf8.RuneError {
+				return year, month, day, ErrorInvalidDateFormat
+			}
+		}
+		if r != daysuffix {
+			return year, month, day, ErrorInvalidDaySuffix
+		}
+	}
+	return year, month, day, nil
 }
