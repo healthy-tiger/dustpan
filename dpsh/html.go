@@ -25,7 +25,8 @@ var pClose []byte = []byte("</p>")
 var tdOpenFmt string = `<div class="dp-cell c%d">`
 var tdClose []byte = []byte("</div>")
 
-var trOpenFmt string = `<div class="dp-row" data-filename="%s">`
+var trOpenFn1 []byte = []byte(`<div class="dp-row" data-filename="`)
+var trOpenFn2 []byte = []byte(`">`)
 var trOpen []byte = []byte(`<div class="dp-row">`)
 var trClose []byte = []byte("</div>")
 
@@ -101,7 +102,15 @@ func htmlWriteSection(sec *dptxt.Section, tdOpen []byte, w *bufio.Writer) error 
 
 func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, tdOpenMap map[string][]byte, w *bufio.Writer) error {
 	var err error
-	_, err = w.WriteString(fmt.Sprintf(trOpenFmt, html.EscapeString(doc.Filename)))
+	_, err = w.Write(trOpenFn1)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write([]byte(html.EscapeString(doc.Filename)))
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(trOpenFn2)
 	if err != nil {
 		return err
 	}

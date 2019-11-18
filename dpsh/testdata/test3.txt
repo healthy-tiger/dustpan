@@ -1,3 +1,6 @@
 @name: cathy
 @age: 24
 @hobby: shopping
+@birthday: 1986/01/02
+
+@enrollment date: 2017.01.01

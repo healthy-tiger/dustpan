@@ -1,3 +1,7 @@
 @name: bob
 @age: 12
 @hobby: sport
+
+@birthday: 2010/12/3
+
+@enrollment date : 2019-04-01

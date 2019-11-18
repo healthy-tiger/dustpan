@@ -22,11 +22,12 @@ var sep2Newline = []byte("\n\n")
 var sepDq = []byte("\"")
 
 type DustpanConfig struct {
-	SrcPath []string     `json:"src"`
-	Html    HtmlConfig   `json:"html"`
-	Csv     CsvConfig    `json:"csv"`
-	OrderBy []SortConfig `json:"order"`
-	Columns []string     `json:"columns"`
+	SrcPath     []string     `json:"src"`
+	Html        HtmlConfig   `json:"html"`
+	Csv         CsvConfig    `json:"csv"`
+	OrderBy     []SortConfig `json:"order"`
+	Columns     []string     `json:"columns"`
+	DateColumns []string     `json:"dates"`
 }
 
 type CsvConfig struct {
@@ -103,7 +104,7 @@ func LoadFile(filename string, doc *dptxt.Document) error {
 	return nil
 }
 
-func SortDocs(config DustpanConfig, docs []*dptxt.Document) {
+func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
 	if len(config.OrderBy) == 0 {
 		return
 	}
@@ -145,6 +146,25 @@ func SortDocs(config DustpanConfig, docs []*dptxt.Document) {
 	})
 }
 
+func dateCheck(config *DustpanConfig, docs []*dptxt.Document) {
+	if config.DateColumns == nil || len(config.DateColumns) == 0 {
+		return
+	}
+
+	for _, d := range docs {
+		for _, dc := range config.DateColumns {
+			c := d.Sections[dc]
+			if c != nil {
+				year, month, day, err := dptxt.ParseDate(c.PeekBytes())
+				if err != nil {
+					c.Error = err
+					log.Println(string(c.PeekBytes()), year, month, day, err)
+				}
+			}
+		}
+	}
+}
+
 func DoMain(configpath string) {
 	configname, err := filepath.Abs(configpath)
 	if err != nil {
@@ -160,7 +180,9 @@ func DoMain(configpath string) {
 	basepath := filepath.Dir(configname)
 
 	docs := LoadAllFiles(basepath, config.SrcPath)
-	SortDocs(config, docs)
+
+	dateCheck(&config, docs)
+	sortDocs(&config, docs)
 
 	err = WriteCsv(basepath, &config, docs)
 	if err != nil {
@@ -182,15 +204,13 @@ func bytesToInt64(b []byte) int64 {
 	n := 0
 	var v int64 = 0
 	for len(b) > 0 && n < nbyteToInt64 {
-		r, s := utf8.DecodeRune(b)
-		v = v * 10
-		switch r {
-		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			v += int64(r - '0')
-		case '０', '１', '２', '３', '４', '５', '６', '７', '８', '９':
-			v += int64(r - '０')
-		case utf8.RuneError:
+		r, d, s := dptxt.DecodeDigit(b)
+		if r == utf8.RuneError {
+			// bの長さをチェックしているので、s==0にはならない。
 			return math.MaxInt64
+		}
+		if d >= 0 {
+			v = v*10 + int64(d)
 		}
 		b = b[s:]
 		n++

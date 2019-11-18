@@ -1,3 +1,5 @@
 @name: john
 @age: 112
 @hobby: read a book
+@birthday: 2013/02/19
+@enrollment date: 2018/2/5
