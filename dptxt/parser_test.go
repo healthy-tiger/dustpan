@@ -193,6 +193,12 @@ func TestParseDate(t *testing.T) {
 		[]byte("2003.1．3"),
 		[]byte("2003年1月3日"),
 		[]byte("2003年01月03日"),
+		[]byte("  2003.1．3"),
+		[]byte("2003.1．3  "),
+		[]byte("  2003.1．3  "),
+		[]byte("  2003年1月3日"),
+		[]byte("2003年1月3日  "),
+		[]byte("  2003年01月03日  "),
 	}
 
 	for _, d := range dates {
@@ -206,6 +212,44 @@ func TestParseDate(t *testing.T) {
 	}
 	for _, d := range dates2 {
 		year, month, day, err := ParseDate(d)
+		if err != nil {
+			t.Error(string(d), year, month, day, err)
+		}
+		if year != 2003 || month != 1 || day != 3 {
+			t.Error(string(d), year, month, day, err)
+		}
+	}
+}
+
+func TestParseLogDate(t *testing.T) {
+	dates := [][]byte{
+		[]byte("abc(2019/11/13)"),
+		[]byte("abc(2019-11-13)"),
+		[]byte("abc(2019.11.13)"),
+		[]byte("abc(2019年11月13日)"),
+	}
+	dates2 := [][]byte{
+		[]byte("hello ( 2003/01/03   ) "),
+		[]byte("hello( 2003-01-03) world"),
+		[]byte("hello（2003.01.03)"),
+		[]byte("hello(2003/1/3）"),
+		[]byte("hello ( 2003/01/03   ) "),
+		[]byte("hello　　( 2003-01-03 ) world"),
+		[]byte("hello（　　2003.01.03　)"),
+		[]byte("hello(2003/1/3）"),
+	}
+
+	for _, d := range dates {
+		year, month, day, err := ParseLogDate(d)
+		if err != nil {
+			t.Error(string(d), year, month, day, err)
+		}
+		if year != 2019 || month != 11 || day != 13 {
+			t.Error(string(d), year, month, day, err)
+		}
+	}
+	for _, d := range dates2 {
+		year, month, day, err := ParseLogDate(d)
 		if err != nil {
 			t.Error(string(d), year, month, day, err)
 		}
