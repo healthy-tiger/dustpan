@@ -1,27 +1,13 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"flag"
 )
 
-func usage() {
-	fmt.Println(`Dustpan shell Ver ????
-dpsh <config file>`)
-}
-
-func argError() {
-	fmt.Println("Too many arguments.")
-}
-
 func main() {
-	switch len(os.Args) {
-	case 1:
-		usage()
-	case 2:
-		DoMain(os.Args[1])
-	default:
-		argError()
-		usage()
-	}
+	var configpath string
+	flag.StringVar(&configpath, "c", "config.json", "config file path")
+	flag.Parse()
+
+	DoMain(configpath)
 }
