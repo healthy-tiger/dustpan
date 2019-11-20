@@ -11,6 +11,6 @@
 		{ "name": "age", "numerical": true },
 		{ "name": "name", "descending": true }
 	],
-	"columns": [ "name", "age", "hobby" ],
+	"columns": [ "name", "age", "hobby", "birthday", "enrollment date" ],
 	"dates": [ "birthday", "enrollment date" ]
 }
