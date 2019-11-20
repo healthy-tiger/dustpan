@@ -22,7 +22,8 @@ var scriptClose = []byte("</script>")
 var pOpen []byte = []byte("<p>")
 var pClose []byte = []byte("</p>")
 
-var tdOpenFmt string = `<div class="dp-cell c%d">`
+var tdOpenFmt string = `<div class="dp-cell" data-section="%v">`
+var tdOpenWithErrFmt string = `<div class="dp-cell" data-section="%v" data-error="%v">`
 var tdClose []byte = []byte("</div>")
 
 var trOpenFn1 []byte = []byte(`<div class="dp-row" data-filename="`)
@@ -62,7 +63,7 @@ func htmlWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
 		if err != nil {
 			return err
 		}
-		_, err = w.Write(v) // TODO vのエスケープ
+		_, err = w.WriteString(html.EscapeString(string(v)))
 		if err != nil {
 			return err
 		}
@@ -71,12 +72,19 @@ func htmlWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
 	return nil
 }
 
-func htmlWriteSection(sec *dptxt.Section, tdOpen []byte, w *bufio.Writer) error {
-	_, err := w.Write(tdOpen)
+func htmlWriteSection(sec *dptxt.Section, secname string, w *bufio.Writer) error {
+	var err error
+
+	// secがnilでも開始タグと閉じタグは出力する。
+	if sec != nil && sec.Error != nil {
+		_, err = w.WriteString(fmt.Sprintf(tdOpenWithErrFmt, html.EscapeString(secname), html.EscapeString(sec.Error.Error())))
+	} else {
+		_, err = w.WriteString(fmt.Sprintf(tdOpenFmt, html.EscapeString(secname)))
+	}
 	if err != nil {
 		return err
 	}
-	// secがnilでも開始タグと閉じタグは出力する。
+
 	if sec != nil {
 		for _, p := range sec.Value {
 			_, err = w.Write(pOpen)
@@ -93,6 +101,7 @@ func htmlWriteSection(sec *dptxt.Section, tdOpen []byte, w *bufio.Writer) error 
 			}
 		}
 	}
+
 	_, err = w.Write(tdClose)
 	if err != nil {
 		return err
@@ -100,7 +109,7 @@ func htmlWriteSection(sec *dptxt.Section, tdOpen []byte, w *bufio.Writer) error 
 	return nil
 }
 
-func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, tdOpenMap map[string][]byte, w *bufio.Writer) error {
+func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Writer) error {
 	var err error
 	_, err = w.Write(trOpenFn1)
 	if err != nil {
@@ -115,7 +124,7 @@ func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, tdOpenMap map
 		return err
 	}
 	for _, cname := range config.Columns {
-		err = htmlWriteSection(doc.Sections[cname], tdOpenMap[cname], w)
+		err = htmlWriteSection(doc.Sections[cname], cname, w)
 		if err != nil {
 			return err
 		}
@@ -173,6 +182,7 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 		}
 	}
 
+	// JavaScriptの指定があれば読み込んで埋め込む。読み込みエラーがあっても中断はしない。
 	if len(config.Html.JsPath) > 0 {
 		jsname := filepath.Clean(filepath.Join(basepath, config.Html.JsPath))
 		jsbytes, err := ioutil.ReadFile(jsname)
@@ -195,9 +205,6 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 	if err != nil {
 		return err
 	}
-
-	// あとでドキュメントの出力に使うので、カラムの開始タグをキャッシュする。
-	tdOpenMap := make(map[string][]byte)
 
 	// theadを出力する。
 	_, err = w.Write(theadOpen)
@@ -223,8 +230,6 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 		if err != nil {
 			return err
 		}
-
-		tdOpenMap[c] = tdOpen // キャッシュに入れる。
 	}
 	_, err = w.Write(trClose)
 	if err != nil {
@@ -240,7 +245,7 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 		return err
 	}
 	for _, d := range docs {
-		err = htmlWriteDocument(config, d, tdOpenMap, w)
+		err = htmlWriteDocument(config, d, w)
 		if err != nil {
 			return err
 		}
