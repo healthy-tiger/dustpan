@@ -165,40 +165,13 @@ func TestParseRaw(t *testing.T) {
 	}
 }
 
-func TestParseDate(t *testing.T) {
+// 月と日が二桁
+func TestParseDate1(t *testing.T) {
 	dates := [][]byte{
 		[]byte("2019/11/13"),
 		[]byte("2019-11-13"),
 		[]byte("2019.11.13"),
 		[]byte("2019年11月13日"),
-	}
-	dates2 := [][]byte{
-		[]byte("2003/01/03"),
-		[]byte("2003-01-03"),
-		[]byte("2003.01.03"),
-		[]byte("2003/1/3"),
-		[]byte("2003-1-3"),
-		[]byte("2003.1.3"),
-		[]byte("2003／01/03"),
-		[]byte("2003ー01-03"),
-		[]byte("2003．01.03"),
-		[]byte("2003／1/3"),
-		[]byte("2003ー1-3"),
-		[]byte("2003．1.3"),
-		[]byte("2003/01／03"),
-		[]byte("2003-01ー03"),
-		[]byte("2003.01．03"),
-		[]byte("2003/1／3"),
-		[]byte("2003-1ー3"),
-		[]byte("2003.1．3"),
-		[]byte("2003年1月3日"),
-		[]byte("2003年01月03日"),
-		[]byte("  2003.1．3"),
-		[]byte("2003.1．3  "),
-		[]byte("  2003.1．3  "),
-		[]byte("  2003年1月3日"),
-		[]byte("2003年1月3日  "),
-		[]byte("  2003年01月03日  "),
 	}
 
 	for _, d := range dates {
@@ -210,13 +183,141 @@ func TestParseDate(t *testing.T) {
 			t.Error(string(d), year, month, day, err)
 		}
 	}
-	for _, d := range dates2 {
+}
+
+// 月と日が一桁
+func TestParseDate2(t *testing.T) {
+	dates := [][]byte{
+		[]byte("2003/1/3"),
+		[]byte("2003-1-3"),
+		[]byte("2003.1.3"),
+		[]byte("2003年1月3日"),
+	}
+
+	for _, d := range dates {
 		year, month, day, err := ParseDate(d)
 		if err != nil {
 			t.Error(string(d), year, month, day, err)
 		}
 		if year != 2003 || month != 1 || day != 3 {
 			t.Error(string(d), year, month, day, err)
+		}
+	}
+}
+
+// 月と日がゼロ埋めありの二桁
+func TestParseDate3(t *testing.T) {
+	dates := [][]byte{
+		[]byte("2003/01/03"),
+		[]byte("2003-01-03"),
+		[]byte("2003.01.03"),
+		[]byte("2003年01月03日"),
+	}
+
+	for _, d := range dates {
+		year, month, day, err := ParseDate(d)
+		if err != nil {
+			t.Error(string(d), year, month, day, err)
+		}
+		if year != 2003 || month != 1 || day != 3 {
+			t.Error(string(d), year, month, day, err)
+		}
+	}
+}
+
+// 区切り文字に全角と半角が混在
+func TestParseDate4(t *testing.T) {
+	dates := [][]byte{
+		[]byte("2003／01/03"),
+		[]byte("2003―01-03"),
+		[]byte("2003．01.03"),
+		[]byte("2003／1/3"),
+		[]byte("2003―1-3"),
+		[]byte("2003．1.3"),
+		[]byte("2003/01／03"),
+		[]byte("2003-01―03"),
+		[]byte("2003.01．03"),
+		[]byte("2003/1／3"),
+		[]byte("2003-1―3"),
+		[]byte("2003.1．3"),
+	}
+
+	for _, d := range dates {
+		year, month, day, err := ParseDate(d)
+		if err != nil {
+			t.Error(string(d), year, month, day, err)
+		}
+		if year != 2003 || month != 1 || day != 3 {
+			t.Error(string(d), year, month, day, err)
+		}
+	}
+}
+
+// 前後に空白
+func TestParseDate5(t *testing.T) {
+	dates := [][]byte{
+		[]byte("  2003.1.3"),
+		[]byte("2003.1.3  "),
+		[]byte("  2003.1.3  "),
+		[]byte("  2003年1月3日"),
+		[]byte("2003年1月3日  "),
+		[]byte("  2003年01月03日  "),
+	}
+
+	for _, d := range dates {
+		year, month, day, err := ParseDate(d)
+		if err != nil {
+			t.Error(string(d), year, month, day, err)
+		}
+		if year != 2003 || month != 1 || day != 3 {
+			t.Error(string(d), year, month, day, err)
+		}
+	}
+}
+
+// 数字に全角と半角が混在
+func TestParseDate6(t *testing.T) {
+	dates := [][]byte{
+		[]byte("  2０0３.1.3"),
+		[]byte("2003.１.3  "),
+		[]byte("  2003.1.３  "),
+		[]byte("  ２003年1月3日"),
+		[]byte("200３年1月3日  "),
+		[]byte("  2003年０1月0３日  "),
+	}
+
+	for _, d := range dates {
+		year, month, day, err := ParseDate(d)
+		if err != nil {
+			t.Error(string(d), year, month, day, err)
+		}
+		if year != 2003 || month != 1 || day != 3 {
+			t.Error(string(d), year, month, day, err)
+		}
+	}
+}
+
+func TestParseDateErr(t *testing.T) {
+	dates := [][]byte{
+		[]byte(".1.3"),
+		[]byte("2０３.1.3"),
+		[]byte("2０0３..3"),
+		[]byte("2０0３.1."),
+		[]byte("2０0３.2. "),
+		[]byte("2０0３4.1.3"),
+		[]byte("２003年1日3日"),
+		[]byte("2０0３.1-3"),
+		[]byte("2０0３/1.3"),
+		[]byte("2０0３-1.3"),
+		[]byte("a  2003.1.3  "),
+		[]byte("  2003.1.3b "),
+		[]byte("  2003.1.3 b "),
+	}
+
+	for _, d := range dates {
+		year, month, day, err := ParseDate(d)
+		if err == nil {
+			t.Error(string(d), year, month, day)
 		}
 	}
 }
