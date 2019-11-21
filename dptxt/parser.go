@@ -17,6 +17,8 @@ var (
 	ErrorSectionNameIsEmpty           = errors.New("セクション名が空です。")
 	ErrorUnexpectedText               = errors.New("予期しない入力文字列です。")
 	ErrorInvalidDateFormat            = errors.New("日付の書式が間違っています。")
+	ErrorNoMonthSpecified             = errors.New("月が未指定")
+	ErrorNoDaySpecified               = errors.New("日が未指定")
 	ErrorYearIsOutOfRange             = errors.New("無効な年")
 	ErrorMonthIsOutOfRange            = errors.New("無効な月")
 	ErrorInvalidMonthSuffix           = errors.New("日付の書式が間違っています。")
@@ -475,7 +477,9 @@ func ParseDate(b []byte) (int, int, int, error) {
 	if r == utf8.RuneError {
 		return year, month, day, ErrorInvalidDateFormat
 	}
-	if n == 2 { // 二桁の時は月のサフィックスを追加で読み込む
+	if n == 0 {
+		return year, month, day, ErrorNoMonthSpecified
+	} else if n == 2 { // 二桁の時は月のサフィックスを追加で読み込む
 		r, s = utf8.DecodeRune(b)
 		if r == utf8.RuneError {
 			return year, month, day, ErrorInvalidDateFormat
@@ -485,19 +489,20 @@ func ParseDate(b []byte) (int, int, int, error) {
 	if ms, ok := monthSuffixes[r]; !ok || ms != monthsuffix {
 		return year, month, day, ErrorInvalidMonthSuffix
 	}
-	if month < 1 || month > 12 {
-		return year, month, day, ErrorMonthIsOutOfRange
-	}
 
 	n = 0
 	for n < 2 {
 		r, v, s = DecodeDigit(b)
-		b = b[s:]
 		if v < 0 {
 			break
 		}
+		b = b[s:]
 		day = day*10 + v
 		n++
+	}
+
+	if n == 0 {
+		return year, month, day, ErrorNoDaySpecified
 	}
 
 	if daysuffix != 0 {
@@ -509,11 +514,11 @@ func ParseDate(b []byte) (int, int, int, error) {
 			if r == utf8.RuneError {
 				return year, month, day, ErrorInvalidDateFormat
 			}
-			b = b[s:]
 		}
 		if r != daysuffix {
 			return year, month, day, ErrorInvalidDaySuffix
 		}
+		b = b[s:] // 日のサフィックスを読み飛す
 	}
 
 	// 日付の出現したあとの部分に空白以外があればエラー
