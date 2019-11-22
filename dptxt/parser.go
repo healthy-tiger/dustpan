@@ -21,6 +21,7 @@ var (
 	ErrorNoDaySpecified               = errors.New("日が未指定")
 	ErrorYearIsOutOfRange             = errors.New("無効な年")
 	ErrorMonthIsOutOfRange            = errors.New("無効な月")
+	ErrorDayIsOutOfRange              = errors.New("無効な日")
 	ErrorInvalidMonthSuffix           = errors.New("日付の書式が間違っています。")
 	ErrorInvalidDaySuffix             = errors.New("日付の書式が間違っています。")
 	ErrorNoOpenParenthesis            = errors.New("日付の左括弧がありません。")
@@ -332,16 +333,36 @@ func LastIndexFuncWithSize(b []byte, f func(r rune) bool) (int, int) {
 	return index, size
 }
 
-func DecodeDigit(b []byte) (rune, int, int) {
-	r, s := utf8.DecodeRune(b)
-	switch r {
-	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-		return r, int(r - '0'), s
-	case '０', '１', '２', '３', '４', '５', '６', '７', '８', '９':
-		return r, int(r - '０'), s
-	default:
-		return r, -1, s
+func DecodeDigit(b []byte) ([]byte, int, rune, int) {
+	var (
+		r rune
+		s int
+		v int = 0
+		n int = 0
+	)
+	// 前の空白部分を読み飛す
+	b = bytes.TrimLeftFunc(b, isSp)
+DigitLoop:
+	for len(b) > 0 {
+		r, s = utf8.DecodeRune(b)
+		switch r {
+		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+			v = v*10 + int(r-'0')
+			b = b[s:]
+			n++
+		case '０', '１', '２', '３', '４', '５', '６', '７', '８', '９':
+			v = v*10 + int(r-'０')
+			b = b[s:]
+			n++
+		default:
+			break DigitLoop
+		}
 	}
+	if r != utf8.RuneError {
+		// 後の空白部分を読み飛す
+		b = bytes.TrimLeftFunc(b, isSp)
+	}
+	return b, v, r, n
 }
 
 // 年のサフィックスから月のサフィックスへのマップ
@@ -427,32 +448,21 @@ func ParseDate(b []byte) (int, int, int, error) {
 		year, month, day       int = 0, 0, 0
 		monthsuffix, daysuffix rune
 		r                      rune
-		v, s                   int
-		n                      int = 0
+		n, s                   int
 	)
 
-	// 最初の空白部分を読み飛す
-	b = bytes.TrimLeftFunc(b, isSp)
-
-	for n < 4 {
-		r, v, s = DecodeDigit(b)
-		b = b[s:]
-		if v < 0 { // 数字じゃない。
-			break
-		}
-		year = year*10 + v
-		n++
-	}
-	if r == utf8.RuneError || n != 4 {
+	b, year, r, n = DecodeDigit(b)
+	if r == utf8.RuneError {
 		return year, month, day, ErrorInvalidDateFormat
+	} else if n != 4 {
+		return year, month, day, ErrorYearIsOutOfRange
 	}
-	// 年のサフィックス('年')の部分を読む
+
+	// 年のサフィックスをデコード
 	r, s = utf8.DecodeRune(b)
 	if r == utf8.RuneError {
 		return year, month, day, ErrorInvalidDateFormat
 	}
-	b = b[s:]
-
 	monthsuffix, ok := year2monthSuffix[r]
 	if !ok {
 		return year, month, day, ErrorInvalidDateFormat
@@ -462,58 +472,41 @@ func ParseDate(b []byte) (int, int, int, error) {
 	} else {
 		daysuffix = 0
 	}
+	b = b[s:]
 
-	n = 0
-	for n < 2 {
-		r, v, s = DecodeDigit(b)
-		b = b[s:]
-		if v < 0 {
-			break
-		}
-		month = month*10 + v
-		n++
-	}
-
+	b, month, r, n = DecodeDigit(b)
 	if r == utf8.RuneError {
 		return year, month, day, ErrorInvalidDateFormat
-	}
-	if n == 0 {
+	} else if n == 0 {
 		return year, month, day, ErrorNoMonthSpecified
-	} else if n == 2 { // 二桁の時は月のサフィックスを追加で読み込む
-		r, s = utf8.DecodeRune(b)
-		if r == utf8.RuneError {
-			return year, month, day, ErrorInvalidDateFormat
-		}
-		b = b[s:]
+	} else if n > 2 {
+		return year, month, day, ErrorMonthIsOutOfRange
+	}
+
+	// 月のサフィックスをデコード
+	r, s = utf8.DecodeRune(b)
+	if r == utf8.RuneError {
+		return year, month, day, ErrorInvalidDateFormat
 	}
 	if ms, ok := monthSuffixes[r]; !ok || ms != monthsuffix {
 		return year, month, day, ErrorInvalidMonthSuffix
 	}
+	b = b[s:]
 
-	n = 0
-	for n < 2 {
-		r, v, s = DecodeDigit(b)
-		if v < 0 {
-			break
-		}
-		b = b[s:]
-		day = day*10 + v
-		n++
-	}
-
-	if n == 0 {
+	b, day, r, n = DecodeDigit(b)
+	if r == utf8.RuneError {
+		return year, month, day, ErrorInvalidDateFormat
+	} else if n == 0 {
 		return year, month, day, ErrorNoDaySpecified
+	} else if n > 2 {
+		return year, month, day, ErrorDayIsOutOfRange
 	}
 
+	// 日のサフィックスをデコード(ある場合のみ)
 	if daysuffix != 0 {
+		r, s = utf8.DecodeRune(b)
 		if r == utf8.RuneError {
 			return year, month, day, ErrorInvalidDateFormat
-		}
-		if n == 2 { // 二桁の時は日のサフィックスを追加で読み込む
-			r, s = utf8.DecodeRune(b)
-			if r == utf8.RuneError {
-				return year, month, day, ErrorInvalidDateFormat
-			}
 		}
 		if r != daysuffix {
 			return year, month, day, ErrorInvalidDaySuffix
@@ -521,7 +514,7 @@ func ParseDate(b []byte) (int, int, int, error) {
 		b = b[s:] // 日のサフィックスを読み飛す
 	}
 
-	// 日付の出現したあとの部分に空白以外があればエラー
+	// 日付の後の部分に空白以外があればエラー
 	b = bytes.TrimLeftFunc(b, isSp)
 	if len(b) > 0 {
 		return year, month, day, ErrorInvalidDateFormat
