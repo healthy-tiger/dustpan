@@ -333,29 +333,36 @@ func LastIndexFuncWithSize(b []byte, f func(r rune) bool) (int, int) {
 	return index, size
 }
 
+func DecodeSingleDigit(b []byte) (rune, int, int) {
+	r, s := utf8.DecodeRune(b)
+	switch r {
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		return r, int(r - '0'), s
+	case '０', '１', '２', '３', '４', '５', '６', '７', '８', '９':
+		return r, int(r - '０'), s
+	default:
+		return r, -1, s
+	}
+}
+
 func DecodeDigit(b []byte) ([]byte, int, rune, int) {
 	var (
 		r rune
 		s int
+		d int
 		v int = 0
 		n int = 0
 	)
 	// 前の空白部分を読み飛す
 	b = bytes.TrimLeftFunc(b, isSp)
-DigitLoop:
 	for len(b) > 0 {
-		r, s = utf8.DecodeRune(b)
-		switch r {
-		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			v = v*10 + int(r-'0')
+		r, d, s = DecodeSingleDigit(b)
+		if d >= 0 {
+			v = v*10 + d
 			b = b[s:]
 			n++
-		case '０', '１', '２', '３', '４', '５', '６', '７', '８', '９':
-			v = v*10 + int(r-'０')
-			b = b[s:]
-			n++
-		default:
-			break DigitLoop
+		} else {
+			break
 		}
 	}
 	if r != utf8.RuneError {
