@@ -7,7 +7,6 @@ import (
 	"html"
 	"io/ioutil"
 	"log"
-	"path/filepath"
 	"time"
 )
 
@@ -140,7 +139,7 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 	if len(config.Html.DstPath) == 0 {
 		return nil
 	}
-	dstname := filepath.Clean(filepath.Join(basepath, config.Html.DstPath))
+	dstname := normalizePath(basepath, config.Html.DstPath)
 
 	// 一時ファイルの生成
 	tmpfile, err := openTempFile("html")
@@ -166,7 +165,7 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 
 	// CSSの指定があれば読み込んで埋め込む。読み込みエラーがあっても中断はしない。
 	if len(config.Html.CssPath) > 0 {
-		cssname := filepath.Clean(filepath.Join(basepath, config.Html.CssPath))
+		cssname := normalizePath(basepath, config.Html.CssPath)
 		cssbytes, err := ioutil.ReadFile(cssname)
 		if err == nil {
 			_, err = w.Write(styleOpen)
@@ -184,7 +183,7 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 
 	// JavaScriptの指定があれば読み込んで埋め込む。読み込みエラーがあっても中断はしない。
 	if len(config.Html.JsPath) > 0 {
-		jsname := filepath.Clean(filepath.Join(basepath, config.Html.JsPath))
+		jsname := normalizePath(basepath, config.Html.JsPath)
 		jsbytes, err := ioutil.ReadFile(jsname)
 		if err == nil {
 			_, err = w.Write(scriptOpen)

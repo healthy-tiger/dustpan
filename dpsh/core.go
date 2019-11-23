@@ -74,10 +74,17 @@ func LoadConfig(filename string, config *DustpanConfig) error {
 	return nil
 }
 
+func normalizePath(basepath string, path string) string {
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(basepath, path)
+	}
+	return filepath.Clean(path)
+}
+
 func LoadAllFiles(basepath string, paths []string) []*dptxt.Document {
 	docs := make([]*dptxt.Document, 0)
 	for _, p := range paths {
-		ap := filepath.Clean(filepath.Join(basepath, p))
+		ap := normalizePath(basepath, p)
 		gp, err := filepath.Glob(ap)
 		if err != nil {
 			log.Println(ap, err)
@@ -222,8 +229,9 @@ func init() {
 func bytesToInt64(b []byte) int64 {
 	n := 0
 	var v int64 = 0
+
 	for len(b) > 0 && n < nbyteToInt64 {
-		r, d, s := dptxt.DecodeDigit(b)
+		r, d, s := dptxt.DecodeSingleDigit(b)
 		if r == utf8.RuneError {
 			// bの長さをチェックしているので、s==0にはならない。
 			return math.MaxInt64

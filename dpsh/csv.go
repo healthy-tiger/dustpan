@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"github.com/healthy-tiger/dustpan/dptxt"
-	"path/filepath"
 	"strings"
 )
 
@@ -71,7 +70,7 @@ func WriteCsv(basepath string, config *DustpanConfig, docs []*dptxt.Document) er
 	if len(config.Csv.DstPath) == 0 {
 		return nil
 	}
-	dstname := filepath.Clean(filepath.Join(basepath, config.Csv.DstPath))
+	dstname := normalizePath(basepath, config.Csv.DstPath)
 
 	tmpfile, err := openTempFile("csv")
 	if err != nil {
