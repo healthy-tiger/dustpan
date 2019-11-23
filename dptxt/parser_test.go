@@ -79,6 +79,7 @@ func TestParseRaw(t *testing.T) {
 						[][]byte{
 							[]byte("hello"),
 						},
+						nil,
 					},
 				},
 				"hello",
@@ -90,6 +91,7 @@ func TestParseRaw(t *testing.T) {
 						[][]byte{
 							[]byte("2019/1/2"),
 						},
+						nil,
 					},
 				},
 				"2019/1/2",
@@ -101,6 +103,7 @@ func TestParseRaw(t *testing.T) {
 						[][]byte{
 							[]byte("dptxt parse"),
 						},
+						nil,
 					},
 				},
 				"dptxt parse",
@@ -114,12 +117,14 @@ func TestParseRaw(t *testing.T) {
 							[]byte("おひがらもよく、"),
 							[]byte("云々。。。"),
 						},
+						nil,
 					},
 					&Paragraph{
 						[][]byte{
 							[]byte("あれこれ"),
 							[]byte("これそれ"),
 						},
+						nil,
 					},
 				},
 				"ほんじつは、",
@@ -131,6 +136,7 @@ func TestParseRaw(t *testing.T) {
 						[][]byte{
 							[]byte("ボブ"),
 						},
+						nil,
 					},
 				},
 				"ボブ",
@@ -142,6 +148,7 @@ func TestParseRaw(t *testing.T) {
 						[][]byte{
 							[]byte("-O2"),
 						},
+						nil,
 					},
 				},
 				"-O2",
@@ -340,24 +347,13 @@ func TestParseDateErr(t *testing.T) {
 	}
 }
 
-func TestParseLogDate(t *testing.T) {
+func TestParseLogDate1(t *testing.T) {
 	dates := [][]byte{
 		[]byte("abc(2019/11/13)"),
 		[]byte("abc(2019-11-13)"),
 		[]byte("abc(2019.11.13)"),
 		[]byte("abc(2019年11月13日)"),
 	}
-	dates2 := [][]byte{
-		[]byte("hello ( 2003/01/03   ) "),
-		[]byte("hello( 2003-01-03) world"),
-		[]byte("hello（2003.01.03)"),
-		[]byte("hello(2003/1/3）"),
-		[]byte("hello ( 2003/01/03   ) "),
-		[]byte("hello　　( 2003-01-03 ) world"),
-		[]byte("hello（　　2003.01.03　)"),
-		[]byte("hello(2003/1/3）"),
-	}
-
 	for _, d := range dates {
 		year, month, day, err := ParseLogDate(d)
 		if err != nil {
@@ -367,13 +363,50 @@ func TestParseLogDate(t *testing.T) {
 			t.Error(string(d), year, month, day, err)
 		}
 	}
-	for _, d := range dates2 {
+}
+
+func TestParseLogDate2(t *testing.T) {
+	dates := [][]byte{
+		[]byte("hello ( 2003/01/03   ) "),
+		[]byte("hello （ 2003/01/03   ) "),
+		[]byte("hello（2003.01.03)"),
+		[]byte("hello(2003/1/3）"),
+		[]byte("hello ( 2003/01/03   ) "),
+		[]byte("hello（　　2003.01.03　)"),
+		[]byte("hello(2003/1/3）"),
+		[]byte("(2003/1/3)"),
+	}
+
+	for _, d := range dates {
 		year, month, day, err := ParseLogDate(d)
 		if err != nil {
 			t.Error(string(d), year, month, day, err)
 		}
 		if year != 2003 || month != 1 || day != 3 {
 			t.Error(string(d), year, month, day, err)
+		}
+	}
+}
+
+func TestParseLogDateErr(t *testing.T) {
+	dates := [][]byte{
+		[]byte("hello(2003/01/03"),
+		[]byte("hello 2003/01/03)"),
+		[]byte("hello 2003/01/03 "),
+		[]byte("hello(203/01/03)"),
+		[]byte("hello(world)"),
+		[]byte("hello ( 2003/01/03   )) "),
+		[]byte("hello ( 2003/01/03   )   ) "),
+		[]byte("hello ((((( 2003/01/03   )   ) "),
+		[]byte("hello( 2003-01-03) world"),
+		[]byte("hello　　( 2003-01-03 ) world"),
+		[]byte("(2003/1/3) hello world"),
+	}
+
+	for _, d := range dates {
+		year, month, day, err := ParseLogDate(d)
+		if err == nil {
+			t.Error(string(d), year, month, day)
 		}
 	}
 }

@@ -26,6 +26,7 @@ var (
 	ErrorInvalidDaySuffix             = errors.New("日付の書式が間違っています。")
 	ErrorNoOpenParenthesis            = errors.New("日付の左括弧がありません。")
 	ErrorNoCloseParenthesis           = errors.New("日付の右括弧がありません。")
+	ErrorExtraTextAfterDate           = errors.New("ログの末尾に日付けがありません。")
 )
 
 const empty = ""
@@ -81,6 +82,7 @@ type Section struct {
 
 type Paragraph struct {
 	Value [][]byte
+	Error error
 }
 
 func (p *Paragraph) String() string {
@@ -248,7 +250,7 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]*Paragraph, error) {
 			}
 		} else {
 			if len(pvalues) > 0 {
-				values = append(values, &Paragraph{pvalues})
+				values = append(values, &Paragraph{pvalues, nil})
 				pvalues = make([][]byte, 0)
 			}
 		}
@@ -260,7 +262,7 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]*Paragraph, error) {
 	}
 
 	if len(pvalues) > 0 {
-		values = append(values, &Paragraph{pvalues})
+		values = append(values, &Paragraph{pvalues, nil})
 	}
 	return values, nil
 }
@@ -534,15 +536,24 @@ func ParseLogDate(b []byte) (int, int, int, error) {
 	var (
 		year, month, day int
 		i, s             int
+		err              error
 	)
 	i, s = LastIndexFuncWithSize(b, isOpenParenthesis)
 	if i < 0 {
 		return year, month, day, ErrorNoOpenParenthesis
 	}
 	b = b[i+s:]
-	i, s = LastIndexFuncWithSize(b, isCloseParenthesis)
+	i, s = IndexFuncWithSize(b, isCloseParenthesis)
 	if i < 0 {
 		return year, month, day, ErrorNoCloseParenthesis
 	}
-	return ParseDate(b[:i])
+	year, month, day, err = ParseDate(b[:i])
+	if err == nil {
+		b = b[i+s:]
+		b = bytes.TrimLeftFunc(b, isSp)
+		if len(b) > 0 {
+			err = ErrorExtraTextAfterDate
+		}
+	}
+	return year, month, day, err
 }
