@@ -84,6 +84,7 @@ func TestParseRaw(t *testing.T) {
 				},
 				"hello",
 				nil,
+				false,
 			},
 			"date": &Section{
 				[]*Paragraph{
@@ -96,6 +97,7 @@ func TestParseRaw(t *testing.T) {
 				},
 				"2019/1/2",
 				nil,
+				false,
 			},
 			"title": &Section{
 				[]*Paragraph{
@@ -108,6 +110,7 @@ func TestParseRaw(t *testing.T) {
 				},
 				"dptxt parse",
 				nil,
+				false,
 			},
 			"description": &Section{
 				[]*Paragraph{
@@ -129,6 +132,7 @@ func TestParseRaw(t *testing.T) {
 				},
 				"ほんじつは、",
 				nil,
+				false,
 			},
 			"作者": &Section{
 				[]*Paragraph{
@@ -141,6 +145,7 @@ func TestParseRaw(t *testing.T) {
 				},
 				"ボブ",
 				nil,
+				false,
 			},
 			"compile option": &Section{
 				[]*Paragraph{
@@ -153,11 +158,13 @@ func TestParseRaw(t *testing.T) {
 				},
 				"-O2",
 				nil,
+				false,
 			},
 			"author": &Section{
 				[]*Paragraph{},
 				"",
 				nil,
+				false,
 			},
 		},
 		nil,

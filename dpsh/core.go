@@ -159,19 +159,12 @@ func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
 	})
 }
 
-// 日付の妥当性をチェックする。time.Date()を使った結果に対して、日付けが正規化されていないことを確認する。
-func validateDate(year, month, day int) bool {
-	t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
-	if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
-		return true
-	}
-	return false
-}
-
 func dateCheck(config *DustpanConfig, docs []*dptxt.Document) {
 	if config.DateColumns == nil || len(config.DateColumns) == 0 {
 		return
 	}
+
+	now := time.Now()
 
 	for _, d := range docs {
 		for _, dc := range config.DateColumns {
@@ -182,10 +175,19 @@ func dateCheck(config *DustpanConfig, docs []*dptxt.Document) {
 				if err != nil {
 					c.Error = err
 					log.Println(err, string(pb), year, month, day)
-				} else if !validateDate(year, month, day) {
-					c.Error = ErrorInvalidDate
-					log.Println(ErrorInvalidDate, string(pb), year, month, day)
+				} else {
+					// 日付の妥当性をチェックする。time.Date()を使った結果に対して、日付けが正規化されていないことを確認する。
+					t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+					if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
+						if t.Before(now) {
+							c.Expired = true
+						}
+					} else {
+						c.Error = ErrorInvalidDate
+						log.Println(ErrorInvalidDate, string(pb), year, month, day)
+					}
 				}
+
 			}
 		}
 	}

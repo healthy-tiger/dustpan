@@ -78,6 +78,7 @@ type Section struct {
 	Value       []*Paragraph
 	peekedValue string
 	Error       error
+	Expired     bool
 }
 
 type Paragraph struct {
@@ -227,7 +228,7 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 	if err != nil {
 		return empty, err
 	}
-	*sec = Section{ps, empty, nil}
+	*sec = Section{ps, empty, nil, false}
 	return name, nil
 }
 
