@@ -52,12 +52,12 @@ func csvWriteSection(sec *dptxt.Section, w *bufio.Writer) error {
 func csvWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Writer) error {
 	var err error
 	sep := sepEmpty
-	for _, cname := range config.Columns {
+	for _, cd := range config.ColumnDefs {
 		_, err = w.Write(sep)
 		if err != nil {
 			return err
 		}
-		err = csvWriteSection(doc.Sections[cname], w)
+		err = csvWriteSection(doc.Sections[cd.Name], w)
 		if err != nil {
 			return err
 		}
@@ -82,10 +82,10 @@ func WriteCsv(basepath string, config *DustpanConfig, docs []*dptxt.Document) er
 	}()
 	w := bufio.NewWriter(tmpfile)
 
-	cols := make([]string, len(config.Columns))
+	cols := make([]string, len(config.ColumnDefs))
 	if config.Csv.AddHeading {
-		for i, c := range config.Columns {
-			cols[i] = "\"" + c + "\""
+		for i, cd := range config.ColumnDefs {
+			cols[i] = "\"" + cd.Name + "\""
 		}
 		_, err = w.WriteString(strings.Join(cols, ","))
 		if err != nil {

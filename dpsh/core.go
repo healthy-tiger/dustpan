@@ -24,16 +24,32 @@ var sep2Newline = []byte("\n\n")
 var sepDq = []byte("\"")
 
 var (
-	ErrorInvalidDate = errors.New("無効な日付")
+	ErrorInvalidDate       = errors.New("無効な日付")
+	ErrorNoColumnName      = errors.New("カラム名が未指定")
+	ErrorNoColumnType      = errors.New("カラム型が未指定")
+	ErrorUndefinedColumn   = errors.New("未定義のカラム")
+	ErrorUnknownColumnType = errors.New("未知のカラム型")
 )
 
 type DustpanConfig struct {
-	SrcPath     []string     `json:"src"`
-	Html        HtmlConfig   `json:"html"`
-	Csv         CsvConfig    `json:"csv"`
-	OrderBy     []SortConfig `json:"order"`
-	Columns     []string     `json:"columns"`
-	DateColumns []string     `json:"dates"`
+	SrcPath    []string       `json:"src"`
+	Html       HtmlConfig     `json:"html"`
+	Csv        CsvConfig      `json:"csv"`
+	ColumnDefs []ColumnConfig `json:"columns"`
+	SortOrder  []SortConfig   `json:"order"`
+}
+
+const (
+	ColumnTypeText     = "text"
+	ColumnTypeNumber   = "number"
+	ColumnTypeDate     = "date"
+	ColumnTypeDeadline = "deadline"
+	ColumnTypeLog      = "log"
+)
+
+type ColumnConfig struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
 }
 
 type CsvConfig struct {
@@ -42,16 +58,47 @@ type CsvConfig struct {
 }
 
 type HtmlConfig struct {
-	DstPath string `json:"dst"`
-	CssPath string `json:"css"`
-	JsPath  string `json:"js"`
-	Title   string `json:"title"`
+	DstPath        string   `json:"dst"`
+	CssPath        string   `json:"css"`
+	JsPath         string   `json:"js"`
+	Title          string   `json:"title"`
+	DisplayColumns []string `json:"display"`
 }
 
 type SortConfig struct {
 	Name       string `json:"name"`
-	Numerical  bool   `json:"numerical"`  // falseなら辞書式
 	Descending bool   `json:"descending"` // falseなら降順
+}
+
+func validateColumnConfig(cc *ColumnConfig) error {
+	if len(cc.Name) == 0 {
+		return ErrorNoColumnName
+	}
+	if len(cc.Type) == 0 {
+		return ErrorNoColumnType
+	}
+	switch strings.ToLower(cc.Type) {
+	case ColumnTypeText, ColumnTypeNumber, ColumnTypeDate, ColumnTypeDeadline:
+		return nil
+	default:
+		return ErrorUnknownColumnType
+	}
+}
+
+func validateSortConfig(sc *SortConfig) error {
+	if len(sc.Name) == 0 {
+		return ErrorNoColumnName
+	}
+	return nil
+}
+
+func (config *DustpanConfig) GetColumnDef(name string) *ColumnConfig {
+	for i, _ := range config.ColumnDefs {
+		if config.ColumnDefs[i].Name == name {
+			return &config.ColumnDefs[i]
+		}
+	}
+	return nil
 }
 
 func LoadConfig(filename string, config *DustpanConfig) error {
@@ -71,6 +118,21 @@ func LoadConfig(filename string, config *DustpanConfig) error {
 		return err
 	}
 
+	for _, cc := range config.ColumnDefs {
+		if err = validateColumnConfig(&cc); err != nil {
+			log.Fatal("columns:", err)
+		}
+	}
+
+	for _, sc := range config.SortOrder {
+		if err = validateSortConfig(&sc); err != nil {
+			log.Fatal("order:", err)
+		}
+		cc := config.GetColumnDef(sc.Name)
+		if cc == nil {
+			log.Fatal("order:", ErrorUndefinedColumn)
+		}
+	}
 	return nil
 }
 
@@ -118,28 +180,24 @@ func LoadFile(filename string, doc *dptxt.Document) error {
 }
 
 func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
-	if len(config.OrderBy) == 0 {
+	if len(config.SortOrder) == 0 {
 		return
+	}
+
+	cdefs := make([]*ColumnConfig, len(config.SortOrder))
+	for si, sc := range config.SortOrder {
+		cdefs[si] = config.GetColumnDef(sc.Name)
 	}
 
 	sort.Slice(docs, func(i, j int) bool {
 		a := docs[i]
 		b := docs[j]
-		for _, c := range config.OrderBy {
+		for si, c := range config.SortOrder {
 			var r int64
 			as := a.Sections[c.Name]
 			bs := b.Sections[c.Name]
-			if c.Numerical {
-				av := int64(0)
-				bv := int64(0)
-				if as != nil {
-					av = bytesToInt64(as.PeekBytes())
-				}
-				if bs != nil {
-					bv = bytesToInt64(bs.PeekBytes())
-				}
-				r = av - bv
-			} else {
+			cd := cdefs[si]
+			if cd.Type == ColumnTypeText || cd.Type == ColumnTypeLog {
 				// 対応するセクションがなければ空文字列として扱う。
 				av := ""
 				bv := ""
@@ -150,6 +208,16 @@ func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
 					bv = bs.PeekString()
 				}
 				r = int64(strings.Compare(av, bv))
+			} else {
+				av := int64(0)
+				bv := int64(0)
+				if as != nil {
+					av = bytesToInt64(as.PeekBytes())
+				}
+				if bs != nil {
+					bv = bytesToInt64(bs.PeekBytes())
+				}
+				r = av - bv
 			}
 			if r != 0 {
 				return (r < 0) != c.Descending
@@ -160,16 +228,16 @@ func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
 }
 
 func dateCheck(config *DustpanConfig, docs []*dptxt.Document) {
-	if config.DateColumns == nil || len(config.DateColumns) == 0 {
+	if config.ColumnDefs == nil || len(config.ColumnDefs) == 0 {
 		return
 	}
 
 	now := time.Now()
 
 	for _, d := range docs {
-		for _, dc := range config.DateColumns {
-			c := d.Sections[dc]
-			if c != nil {
+		for _, cd := range config.ColumnDefs {
+			c := d.Sections[cd.Name]
+			if c != nil && (cd.Type == ColumnTypeDate || cd.Type == ColumnTypeDeadline) {
 				pb := c.PeekBytes()
 				year, month, day, err := dptxt.ParseDate(pb)
 				if err != nil {
@@ -179,7 +247,8 @@ func dateCheck(config *DustpanConfig, docs []*dptxt.Document) {
 					// 日付の妥当性をチェックする。time.Date()を使った結果に対して、日付けが正規化されていないことを確認する。
 					t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
 					if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
-						if t.Before(now) {
+						// 有効期限型で値が現在日時より前なら有効期限切れのフラグを立てる。
+						if cd.Type == ColumnTypeDeadline && t.Before(now) {
 							c.Expired = true
 						}
 					} else {
@@ -187,7 +256,6 @@ func dateCheck(config *DustpanConfig, docs []*dptxt.Document) {
 						log.Println(ErrorInvalidDate, string(pb), year, month, day)
 					}
 				}
-
 			}
 		}
 	}

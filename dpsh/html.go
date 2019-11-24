@@ -122,7 +122,7 @@ func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Writ
 	if err != nil {
 		return err
 	}
-	for _, cname := range config.Columns {
+	for _, cname := range config.Html.DisplayColumns {
 		err = htmlWriteSection(doc.Sections[cname], cname, w)
 		if err != nil {
 			return err
@@ -214,14 +214,14 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 	if err != nil {
 		return err
 	}
-	for i, c := range config.Columns {
+	for i, cname := range config.Html.DisplayColumns {
 		tdOpen := []byte(fmt.Sprintf(tdOpenFmt, i))
 
 		_, err = w.Write(tdOpen)
 		if err != nil {
 			return err
 		}
-		_, err = w.WriteString(c)
+		_, err = w.WriteString(cname)
 		if err != nil {
 			return err
 		}
