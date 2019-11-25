@@ -267,7 +267,7 @@ func TestParseDate4(t *testing.T) {
 	}
 }
 
-// 前後に空白
+// 前後に空白、空白のあとに単語
 func TestParseDate5(t *testing.T) {
 	dates := [][]byte{
 		[]byte("  2003.1.3"),
@@ -290,6 +290,8 @@ func TestParseDate5(t *testing.T) {
 		[]byte("2003年01月3   日"),
 		[]byte("2003年01月   03   日"),
 		[]byte("2003年01月   3   日"),
+		[]byte("  2003.1.3 b "),
+		[]byte("2003年01月   3   日 太郎"),
 	}
 
 	for _, d := range dates {
@@ -339,7 +341,7 @@ func TestParseDateErr(t *testing.T) {
 		[]byte("2０0３-1.3"),
 		[]byte("a  2003.1.3  "),
 		[]byte("  2003.1.3b "),
-		[]byte("  2003.1.3 b "),
+		[]byte("  2003年1月3日太郎  "),
 		[]byte("  2003 "),
 		[]byte("  2003.1 "),
 		[]byte("  2003.111.3 "),
@@ -381,6 +383,7 @@ func TestParseLogDate2(t *testing.T) {
 		[]byte("hello ( 2003/01/03   ) "),
 		[]byte("hello（　　2003.01.03　)"),
 		[]byte("hello(2003/1/3）"),
+		[]byte("hello(2003/1/3 world）"),
 		[]byte("(2003/1/3)"),
 	}
 
