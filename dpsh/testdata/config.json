@@ -7,6 +7,7 @@
 	"html": {
 		"dst":"test.html",
 		"css":"test.css",
+		"title":"test data",
 		"display": [
 			"name",
 			"age",
