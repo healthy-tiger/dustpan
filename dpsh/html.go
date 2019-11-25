@@ -19,21 +19,23 @@ var scriptOpen = []byte(`<script>`)
 var scriptClose = []byte("</script>")
 
 var pOpen []byte = []byte("<p>")
+var pOpenWithErrFmt string = `<p data-error="%v">`
 var pClose []byte = []byte("</p>")
 
-var tdOpenFmt string = `<div class="dp-cell" data-section="%v">`
-var tdOpenWithErrFmt string = `<div class="dp-cell" data-section="%v" data-error="%v">`
+var tdOpenFmt string = `<div class="dp-c" data-section="%v">`
+var tdOpenWithExpireFmt string = `<div class="dp-c" data-section="%v" data-expired="1">`
+var tdOpenWithErrFmt string = `<div class="dp-c" data-section="%v" data-error="%v">`
 var tdClose []byte = []byte("</div>")
 
-var trOpenFn1 []byte = []byte(`<div class="dp-row" data-filename="`)
+var trOpenFn1 []byte = []byte(`<div class="dp-r" data-filename="`)
 var trOpenFn2 []byte = []byte(`">`)
-var trOpen []byte = []byte(`<div class="dp-row">`)
+var trOpen []byte = []byte(`<div class="dp-r">`)
 var trClose []byte = []byte("</div>")
 
-var theadOpen []byte = []byte(`<div class="dp-header">`)
+var theadOpen []byte = []byte(`<div class="dp-h">`)
 var theadClose []byte = []byte("</div>")
 
-var tbodyOpen []byte = []byte(`<div class="dp-body">`)
+var tbodyOpen []byte = []byte(`<div class="dp-b">`)
 var tbodyClose []byte = []byte("</div>")
 
 const defaultTitle = "Dustpan HTML"
@@ -48,7 +50,7 @@ var contentOpen1 string = `<!DOCTYPE html>
 var contentOpen2 string = `
 </head>
 <body data-update="%d/%d/%d">
-<div class="dp-table">`
+<div class="dp-t">`
 
 var contentClose string = `</div>
 </body>
@@ -77,6 +79,8 @@ func htmlWriteSection(sec *dptxt.Section, secname string, w *bufio.Writer) error
 	// secがnilでも開始タグと閉じタグは出力する。
 	if sec != nil && sec.Error != nil {
 		_, err = w.WriteString(fmt.Sprintf(tdOpenWithErrFmt, html.EscapeString(secname), html.EscapeString(sec.Error.Error())))
+	} else if sec != nil && sec.Expired {
+		_, err = w.WriteString(fmt.Sprintf(tdOpenWithExpireFmt, html.EscapeString(secname)))
 	} else {
 		_, err = w.WriteString(fmt.Sprintf(tdOpenFmt, html.EscapeString(secname)))
 	}
@@ -86,7 +90,11 @@ func htmlWriteSection(sec *dptxt.Section, secname string, w *bufio.Writer) error
 
 	if sec != nil {
 		for _, p := range sec.Value {
-			_, err = w.Write(pOpen)
+			if p.Error != nil {
+				_, err = w.WriteString(fmt.Sprintf(pOpenWithErrFmt, p.Error))
+			} else {
+				_, err = w.Write(pOpen)
+			}
 			if err != nil {
 				return err
 			}
