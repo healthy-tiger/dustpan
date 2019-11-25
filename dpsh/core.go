@@ -67,7 +67,7 @@ type HtmlConfig struct {
 
 type SortConfig struct {
 	Name       string `json:"name"`
-	Descending bool   `json:"descending"` // falseなら降順
+	Descending bool   `json:"descending"` // trueなら降順
 }
 
 func validateColumnConfig(cc *ColumnConfig) error {
