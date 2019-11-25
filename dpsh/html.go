@@ -19,12 +19,12 @@ var scriptOpen = []byte(`<script>`)
 var scriptClose = []byte("</script>")
 
 var pOpen []byte = []byte(`<div class="dp-p">`)
-var pOpenWithErrFmt string = `<div class="dp-p" data-error="%v">`
+var pOpenWithErrFmt string = `<div class="dp-p"><div class="dp-err">%v</div>`
 var pClose []byte = []byte("</div>")
 
 var tdOpenFmt string = `<div class="dp-c" data-section="%v">`
 var tdOpenWithExpireFmt string = `<div class="dp-c" data-section="%v" data-expired="1">`
-var tdOpenWithErrFmt string = `<div class="dp-c" data-section="%v" data-error="%v">`
+var tdOpenWithErrFmt string = `<div class="dp-c" data-section="%v"><div class="dp-err">%v</div>`
 var tdClose []byte = []byte("</div>")
 
 var trOpenFn1 []byte = []byte(`<div class="dp-r" data-filename="`)
