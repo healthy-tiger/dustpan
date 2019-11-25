@@ -2,24 +2,24 @@ body {
 	font-size: 10pt;
 }
 
-.dp-table {
+.dp-t {
 	width: 100%;
 	display: table;
 }
 
-.dp-table .dp-header {
+.dp-t .dp-h {
 	display: table-header-group;
 }
 
-.dp-table .dp-body {
+.dp-t .dp-b {
 	display: table-row-group;
 }
 
-.dp-table .dp-row {
+.dp-t .dp-r {
 	display: table-row;
 }
 
-.dp-table .dp-row .dp-cell {
+.dp-t .dp-r .dp-c {
 	display: table-cell;
 }
 

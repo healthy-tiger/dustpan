@@ -18,9 +18,9 @@ var styleClose = []byte("</style>")
 var scriptOpen = []byte(`<script>`)
 var scriptClose = []byte("</script>")
 
-var pOpen []byte = []byte("<p>")
-var pOpenWithErrFmt string = `<p data-error="%v">`
-var pClose []byte = []byte("</p>")
+var pOpen []byte = []byte(`<div class="dp-p">`)
+var pOpenWithErrFmt string = `<div class="dp-p" data-error="%v">`
+var pClose []byte = []byte("</div>")
 
 var tdOpenFmt string = `<div class="dp-c" data-section="%v">`
 var tdOpenWithExpireFmt string = `<div class="dp-c" data-section="%v" data-expired="1">`
