@@ -11,7 +11,7 @@ Dustpanは、軽量でポータブルな課題管理システムです。
 
 ## 仕組み
 
-1. 設定ファイル(config.json)とdptxt形式のファイルを同じディレクトリに配置します。
+1. 設定ファイル(config.json)とdptxt形式(issue-1.txt-issue-5.txt)のファイルを同じディレクトリに配置します。
 
 ```ディレクトリ配置
 config.json
@@ -24,12 +24,13 @@ issue-5.txt
 
 2. `config.json`の中身は以下のようにします。
 
-```config.json
+```jsonc
+// 実際にはコメントは入れられません。
 {
 	"src":[ "*.txt" ],
 	"html": {
 		"dst":"issue-list.html", // 課題一覧をHTMLとして出力する際のファイル名
-		"title":"課題リスト",    // 出力されるHTMLファイルのtitle要素の内容
+		"title":"課題リスト",     // 出力されるHTMLファイルのtitle要素の内容
 		"display": [             // HTMLに出力するクションの一覧(実際にdptxtには記述があっても、全て出力する必要はない。
 			"title",
 			"date occured",
@@ -52,7 +53,7 @@ issue-5.txt
 }
 ```
 
-3. `issue-1.txt`の中身は以下の通り。issue-2.txt以降のファイルも似たような感じで課題一つにつき一ファイル作成します。
+3. `issue-1.txt`の中身は以下のようなdptxt形式。issue-2.txt以降のファイルも似たような感じで課題一つにつき一ファイル作成します。
 
 ```issue-1.txt
 @title: マウスをクリックすると、お尻が痒くなる。
@@ -80,9 +81,7 @@ issue-5.txt
 $ dpsh
 ```
 
-5. `config.json`の記述に従って`issue-list.html`が出力されます。
-
-
+5. `config.json`の記述に従って`issue-list.html`が出力されます。出力時にCSSを指定していないので、`config.json`で指定したセクションが`div`要素で羅列されて出力されます。これだけです。
 
 ## dptxt形式
 
