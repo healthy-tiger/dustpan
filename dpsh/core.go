@@ -78,7 +78,7 @@ func validateColumnConfig(cc *ColumnConfig) error {
 		return ErrorNoColumnType
 	}
 	switch strings.ToLower(cc.Type) {
-	case ColumnTypeText, ColumnTypeNumber, ColumnTypeDate, ColumnTypeDeadline:
+	case ColumnTypeText, ColumnTypeNumber, ColumnTypeDate, ColumnTypeDeadline, ColumnTypeLog:
 		return nil
 	default:
 		return ErrorUnknownColumnType
@@ -227,7 +227,56 @@ func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
 	})
 }
 
-func dateCheck(config *DustpanConfig, docs []*dptxt.Document) {
+func validateDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
+	for _, cd := range config.ColumnDefs {
+		c := doc.Sections[cd.Name]
+		if c == nil {
+			continue
+		}
+		switch cd.Type {
+		case ColumnTypeDate, ColumnTypeDeadline:
+			pb := c.PeekBytes()
+			year, month, day, err := dptxt.ParseDate(pb)
+			if err != nil {
+				c.Error = err
+				log.Println(err, string(pb), year, month, day)
+			} else {
+				// 日付の妥当性をチェックする。time.Date()を使った結果に対して、日付けが正規化されていないことを確認する。
+				t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+				if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
+					// 有効期限型で値が現在日時より前なら有効期限切れのフラグを立てる。
+					if cd.Type == ColumnTypeDeadline && t.Before(*now) {
+						c.Expired = true
+					}
+				} else {
+					c.Error = ErrorInvalidDate
+					log.Println(ErrorInvalidDate, string(pb), year, month, day)
+				}
+			}
+		case ColumnTypeLog:
+			for _, p := range c.Value {
+				nv := len(p.Value)
+				if nv > 0 {
+					lp := p.Value[nv-1]
+					year, month, day, err := dptxt.ParseLogDate(p.Value[nv-1])
+					if err != nil {
+						p.Error = err
+						log.Println(err, string(lp), year, month, day)
+					} else {
+						t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+						if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
+						} else {
+							p.Error = ErrorInvalidDate
+							log.Println(ErrorInvalidDate, string(lp), year, month, day)
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func validateAllDocs(config *DustpanConfig, docs []*dptxt.Document) {
 	if config.ColumnDefs == nil || len(config.ColumnDefs) == 0 {
 		return
 	}
@@ -235,29 +284,7 @@ func dateCheck(config *DustpanConfig, docs []*dptxt.Document) {
 	now := time.Now()
 
 	for _, d := range docs {
-		for _, cd := range config.ColumnDefs {
-			c := d.Sections[cd.Name]
-			if c != nil && (cd.Type == ColumnTypeDate || cd.Type == ColumnTypeDeadline) {
-				pb := c.PeekBytes()
-				year, month, day, err := dptxt.ParseDate(pb)
-				if err != nil {
-					c.Error = err
-					log.Println(err, string(pb), year, month, day)
-				} else {
-					// 日付の妥当性をチェックする。time.Date()を使った結果に対して、日付けが正規化されていないことを確認する。
-					t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
-					if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
-						// 有効期限型で値が現在日時より前なら有効期限切れのフラグを立てる。
-						if cd.Type == ColumnTypeDeadline && t.Before(now) {
-							c.Expired = true
-						}
-					} else {
-						c.Error = ErrorInvalidDate
-						log.Println(ErrorInvalidDate, string(pb), year, month, day)
-					}
-				}
-			}
-		}
+		validateDoc(config, &now, d)
 	}
 }
 
@@ -277,7 +304,7 @@ func DoMain(configpath string) {
 
 	docs := LoadAllFiles(basepath, config.SrcPath)
 
-	dateCheck(&config, docs)
+	validateAllDocs(&config, docs)
 	sortDocs(&config, docs)
 
 	err = WriteCsv(basepath, &config, docs)
