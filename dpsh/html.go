@@ -18,17 +18,16 @@ var styleClose = []byte("</style>")
 var scriptOpen = []byte(`<script>`)
 var scriptClose = []byte("</script>")
 
+var divErrFmt string = `<div class="dp-err" data-msg="%v"></div>`
+var divExpire []byte = []byte(`<div class="dp-expired"></div>`)
+
 var pOpen []byte = []byte(`<div class="dp-p">`)
-var pOpenWithErrFmt string = `<div class="dp-p"><div class="dp-err">%v</div>`
 var pClose []byte = []byte("</div>")
 
 var tdOpenFmt string = `<div class="dp-c" data-section="%v">`
-var tdOpenWithExpireFmt string = `<div class="dp-c" data-section="%v" data-expired="1">`
-var tdOpenWithErrFmt string = `<div class="dp-c" data-section="%v"><div class="dp-err">%v</div>`
 var tdClose []byte = []byte("</div>")
 
-var trOpenFn1 []byte = []byte(`<div class="dp-r" data-filename="`)
-var trOpenFn2 []byte = []byte(`">`)
+var trOpenFmt string = `<div class="dp-r" data-filename="%v">`
 var trOpen []byte = []byte(`<div class="dp-r">`)
 var trClose []byte = []byte("</div>")
 
@@ -49,7 +48,11 @@ var contentOpen1 string = `<!DOCTYPE html>
 
 var contentOpen2 string = `
 </head>
-<body data-update="%d/%d/%d">
+<body>
+<div class="dp-heading">
+<div class="dp-title" data-title="%v"></div>
+<div class="dp-update" data-update="%d/%d/%d"></div>
+</div>
 <div class="dp-t">`
 
 var contentClose string = `</div>
@@ -57,7 +60,11 @@ var contentClose string = `</div>
 </html>`
 
 func htmlWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
-	var err error
+	_, err := w.Write(pOpen)
+	if err != nil {
+		return err
+	}
+
 	sep := sepEmpty
 	for _, v := range para.Value {
 		_, err = w.Write(sep)
@@ -70,39 +77,45 @@ func htmlWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
 		}
 		sep = br
 	}
+	if para.Error != nil {
+		_, err = w.WriteString(fmt.Sprintf(divErrFmt, html.EscapeString(para.Error.Error())))
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = w.Write(pClose)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func htmlWriteSection(sec *dptxt.Section, secname string, w *bufio.Writer) error {
-	var err error
-
 	// secがnilでも開始タグと閉じタグは出力する。
-	if sec != nil && sec.Error != nil {
-		_, err = w.WriteString(fmt.Sprintf(tdOpenWithErrFmt, html.EscapeString(secname), html.EscapeString(sec.Error.Error())))
-	} else if sec != nil && sec.Expired {
-		_, err = w.WriteString(fmt.Sprintf(tdOpenWithExpireFmt, html.EscapeString(secname)))
-	} else {
-		_, err = w.WriteString(fmt.Sprintf(tdOpenFmt, html.EscapeString(secname)))
-	}
+	_, err := w.WriteString(fmt.Sprintf(tdOpenFmt, html.EscapeString(secname)))
 	if err != nil {
 		return err
 	}
 
 	if sec != nil {
 		for _, p := range sec.Value {
-			if p.Error != nil {
-				_, err = w.WriteString(fmt.Sprintf(pOpenWithErrFmt, p.Error))
-			} else {
-				_, err = w.Write(pOpen)
-			}
-			if err != nil {
-				return err
-			}
 			err = htmlWriteParagraph(p, w)
 			if err != nil {
 				return err
 			}
-			_, err = w.Write(pClose)
+		}
+
+		if sec.Error != nil {
+			_, err = w.WriteString(fmt.Sprintf(divErrFmt, html.EscapeString(sec.Error.Error())))
+			if err != nil {
+				return err
+			}
+		}
+
+		if sec.Expired {
+			_, err = w.Write(divExpire)
 			if err != nil {
 				return err
 			}
@@ -117,16 +130,7 @@ func htmlWriteSection(sec *dptxt.Section, secname string, w *bufio.Writer) error
 }
 
 func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Writer) error {
-	var err error
-	_, err = w.Write(trOpenFn1)
-	if err != nil {
-		return err
-	}
-	_, err = w.Write([]byte(html.EscapeString(doc.Filename)))
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(trOpenFn2)
+	_, err := w.WriteString(fmt.Sprintf(trOpenFmt, html.EscapeString(doc.Filename)))
 	if err != nil {
 		return err
 	}
@@ -208,7 +212,7 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 	}
 
 	year, month, day := time.Now().Date()
-	_, err = w.WriteString(fmt.Sprintf(contentOpen2, year, month, day))
+	_, err = w.WriteString(fmt.Sprintf(contentOpen2, html.EscapeString(title), year, month, day))
 	if err != nil {
 		return err
 	}
