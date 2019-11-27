@@ -51,7 +51,7 @@ var contentOpen2 string = `
 <body>
 <div class="dp-heading">
 <div class="dp-title" data-title="%v"></div>
-<div class="dp-update" data-update="%d/%d/%d"></div>
+<div class="dp-update" data-date="%d/%d/%d" date-time="%d:%02d:%02d"></div>
 </div>
 <div class="dp-t">`
 
@@ -83,7 +83,6 @@ func htmlWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
 			return err
 		}
 	}
-
 	_, err = w.Write(pClose)
 	if err != nil {
 		return err
@@ -211,8 +210,10 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 		}
 	}
 
-	year, month, day := time.Now().Date()
-	_, err = w.WriteString(fmt.Sprintf(contentOpen2, html.EscapeString(title), year, month, day))
+	now := time.Now()
+	year, month, day := now.Date()
+	hour, min, sec := now.Clock()
+	_, err = w.WriteString(fmt.Sprintf(contentOpen2, html.EscapeString(title), year, month, day, hour, min, sec))
 	if err != nil {
 		return err
 	}
