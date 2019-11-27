@@ -46,6 +46,15 @@ var contentOpen1 string = `<!DOCTYPE html>
 <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
 <title>%s</title>`
 
+var defaultstyle []byte = []byte(`
+<style>
+.dp-t { display: table; }
+.dp-t .dp-h { display: table-header-group; }
+.dp-t .dp-b { display: table-row-group; }
+.dp-t .dp-r { display: table-row; }
+.dp-t .dp-r .dp-c { display: table-cell;}
+</style>`)
+
 var contentOpen2 string = `
 </head>
 <body>
@@ -189,6 +198,11 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 		}
 		if err != nil {
 			log.Println(cssname, err)
+		}
+	} else { // CSSの指定がなければデフォルトのCSSを入れる。
+		_, err = w.Write(defaultstyle)
+		if err != nil {
+			log.Println(err)
 		}
 	}
 
