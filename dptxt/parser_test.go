@@ -80,11 +80,13 @@ func TestParseRaw(t *testing.T) {
 							[]byte("hello"),
 						},
 						nil,
+						nil,
 					},
 				},
 				"hello",
 				nil,
 				false,
+				nil,
 			},
 			"date": &Section{
 				[]*Paragraph{
@@ -93,11 +95,13 @@ func TestParseRaw(t *testing.T) {
 							[]byte("2019/1/2"),
 						},
 						nil,
+						nil,
 					},
 				},
 				"2019/1/2",
 				nil,
 				false,
+				nil,
 			},
 			"title": &Section{
 				[]*Paragraph{
@@ -106,11 +110,13 @@ func TestParseRaw(t *testing.T) {
 							[]byte("dptxt parse"),
 						},
 						nil,
+						nil,
 					},
 				},
 				"dptxt parse",
 				nil,
 				false,
+				nil,
 			},
 			"description": &Section{
 				[]*Paragraph{
@@ -121,6 +127,7 @@ func TestParseRaw(t *testing.T) {
 							[]byte("云々。。。"),
 						},
 						nil,
+						nil,
 					},
 					&Paragraph{
 						[][]byte{
@@ -128,11 +135,13 @@ func TestParseRaw(t *testing.T) {
 							[]byte("これそれ"),
 						},
 						nil,
+						nil,
 					},
 				},
 				"ほんじつは、",
 				nil,
 				false,
+				nil,
 			},
 			"作者": &Section{
 				[]*Paragraph{
@@ -141,11 +150,13 @@ func TestParseRaw(t *testing.T) {
 							[]byte("ボブ"),
 						},
 						nil,
+						nil,
 					},
 				},
 				"ボブ",
 				nil,
 				false,
+				nil,
 			},
 			"compile option": &Section{
 				[]*Paragraph{
@@ -154,17 +165,20 @@ func TestParseRaw(t *testing.T) {
 							[]byte("-O2"),
 						},
 						nil,
+						nil,
 					},
 				},
 				"-O2",
 				nil,
 				false,
+				nil,
 			},
 			"author": &Section{
 				[]*Paragraph{},
 				"",
 				nil,
 				false,
+				nil,
 			},
 		},
 		nil,

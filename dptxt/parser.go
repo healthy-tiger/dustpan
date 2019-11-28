@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -80,11 +81,13 @@ type Section struct {
 	peekedValue string
 	Error       error
 	Expired     bool
+	Time        *time.Time
 }
 
 type Paragraph struct {
 	Value [][]byte
 	Error error
+	Time  *time.Time
 }
 
 func (p *Paragraph) String() string {
@@ -229,7 +232,7 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 	if err != nil {
 		return empty, err
 	}
-	*sec = Section{ps, empty, nil, false}
+	*sec = Section{ps, empty, nil, false, nil}
 	return name, nil
 }
 
@@ -252,7 +255,7 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]*Paragraph, error) {
 			}
 		} else {
 			if len(pvalues) > 0 {
-				values = append(values, &Paragraph{pvalues, nil})
+				values = append(values, &Paragraph{pvalues, nil, nil})
 				pvalues = make([][]byte, 0)
 			}
 		}
@@ -264,7 +267,7 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]*Paragraph, error) {
 	}
 
 	if len(pvalues) > 0 {
-		values = append(values, &Paragraph{pvalues, nil})
+		values = append(values, &Paragraph{pvalues, nil, nil})
 	}
 	return values, nil
 }

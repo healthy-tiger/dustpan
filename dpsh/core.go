@@ -208,7 +208,11 @@ func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
 					bv = bs.PeekString()
 				}
 				r = int64(strings.Compare(av, bv))
-			} else {
+			} else if cd.Type == ColumnTypeDate || cd.Type == ColumnTypeDeadline {
+				at := as.Time
+				bt := bs.Time
+				r = int64(at.Sub(*bt))
+			} else if cd.Type == ColumnTypeNumber {
 				av := int64(0)
 				bv := int64(0)
 				if as != nil {
@@ -227,7 +231,7 @@ func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
 	})
 }
 
-func validateDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
+func preprocessDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
 	for _, cd := range config.ColumnDefs {
 		c := doc.Sections[cd.Name]
 		if c == nil {
@@ -244,6 +248,8 @@ func validateDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
 				// 日付の妥当性をチェックする。time.Date()を使った結果に対して、日付けが正規化されていないことを確認する。
 				t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
 				if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
+					c.Time = new(time.Time)
+					*(c.Time) = t
 					// 有効期限型で値が現在日時より前なら有効期限切れのフラグを立てる。
 					if cd.Type == ColumnTypeDeadline && t.Before(*now) {
 						c.Expired = true
@@ -265,6 +271,8 @@ func validateDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
 					} else {
 						t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
 						if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
+							p.Time = new(time.Time)
+							*(p.Time) = t
 						} else {
 							p.Error = ErrorInvalidDate
 							log.Println(ErrorInvalidDate, string(lp), year, month, day)
@@ -276,7 +284,7 @@ func validateDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
 	}
 }
 
-func validateAllDocs(config *DustpanConfig, docs []*dptxt.Document) {
+func preprocessAllDocs(config *DustpanConfig, docs []*dptxt.Document) {
 	if config.ColumnDefs == nil || len(config.ColumnDefs) == 0 {
 		return
 	}
@@ -284,7 +292,7 @@ func validateAllDocs(config *DustpanConfig, docs []*dptxt.Document) {
 	now := time.Now()
 
 	for _, d := range docs {
-		validateDoc(config, &now, d)
+		preprocessDoc(config, &now, d)
 	}
 }
 
@@ -304,7 +312,7 @@ func DoMain(configpath string) {
 
 	docs := LoadAllFiles(basepath, config.SrcPath)
 
-	validateAllDocs(&config, docs)
+	preprocessAllDocs(&config, docs)
 	sortDocs(&config, docs)
 
 	err = WriteCsv(basepath, &config, docs)
