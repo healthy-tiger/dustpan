@@ -82,6 +82,7 @@ type Section struct {
 	Error       error
 	Expired     bool
 	Time        *time.Time
+	Number      int64
 }
 
 type Paragraph struct {
@@ -232,7 +233,7 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 	if err != nil {
 		return empty, err
 	}
-	*sec = Section{ps, empty, nil, false, nil}
+	*sec = Section{ps, empty, nil, false, nil, 0}
 	return name, nil
 }
 

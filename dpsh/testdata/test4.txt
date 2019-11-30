@@ -1,5 +1,5 @@
 @name: timy
-@age: 12
+@age: 5
 @hobby: swimming
 
 @log :

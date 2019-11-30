@@ -7,14 +7,12 @@ import (
 	"github.com/healthy-tiger/dustpan/dptxt"
 	"io/ioutil"
 	"log"
-	"math"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 )
 
 var sepEmpty = []byte("")
@@ -29,6 +27,7 @@ var (
 	ErrorNoColumnType      = errors.New("カラム型が未指定")
 	ErrorUndefinedColumn   = errors.New("未定義のカラム")
 	ErrorUnknownColumnType = errors.New("未知のカラム型")
+	ErrorMultipleValue     = errors.New("複数の値")
 )
 
 type DustpanConfig struct {
@@ -41,7 +40,7 @@ type DustpanConfig struct {
 
 const (
 	ColumnTypeText     = "text"
-	ColumnTypeNumber   = "number"
+	ColumnTypeNumber   = "number" // 符号付き整数
 	ColumnTypeDate     = "date"
 	ColumnTypeDeadline = "deadline"
 	ColumnTypeLog      = "log"
@@ -212,23 +211,23 @@ func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
 				r = int64(strings.Compare(av, bv))
 			} else if cd.Type == ColumnTypeDate || cd.Type == ColumnTypeDeadline {
 				// Timeメンバがnilの場合は現在時刻が入っているものとして扱う。
-				at := as.Time
-				if at == nil {
-					at = &now
+				at := &now
+				if as != nil && as.Time != nil {
+					at = as.Time
 				}
-				bt := bs.Time
-				if bt == nil {
-					bt = &now
+				bt := &now
+				if bs != nil && bs.Time != nil {
+					bt = bs.Time
 				}
 				r = int64(at.Sub(*bt))
 			} else if cd.Type == ColumnTypeNumber {
 				av := int64(0)
 				bv := int64(0)
 				if as != nil {
-					av = bytesToInt64(as.PeekBytes())
+					av = as.Number
 				}
 				if bs != nil {
-					bv = bytesToInt64(bs.PeekBytes())
+					bv = bs.Number
 				}
 				r = av - bv
 			}
@@ -247,25 +246,40 @@ func preprocessDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
 			continue
 		}
 		switch cd.Type {
-		case ColumnTypeDate, ColumnTypeDeadline:
-			pb := c.PeekBytes()
-			year, month, day, err := dptxt.ParseDate(pb)
-			if err != nil {
-				c.Error = err
-				log.Println(err, string(pb), year, month, day)
+		case ColumnTypeNumber:
+ 			if len(c.Value) > 1 || len(c.Value[0].Value) > 1 {
+				c.Error = ErrorMultipleValue
 			} else {
-				// 日付の妥当性をチェックする。time.Date()を使った結果に対して、日付けが正規化されていないことを確認する。
-				t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
-				if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
-					c.Time = new(time.Time)
-					*(c.Time) = t
-					// 有効期限型で値が現在日時より前なら有効期限切れのフラグを立てる。
-					if cd.Type == ColumnTypeDeadline && t.Before(*now) {
-						c.Expired = true
-					}
+				num, err := strconv.ParseInt(c.PeekString(), 10, 64)
+				if err != nil {
+					c.Error = err
 				} else {
-					c.Error = ErrorInvalidDate
-					log.Println(ErrorInvalidDate, string(pb), year, month, day)
+					c.Number = num
+				}
+			}
+		case ColumnTypeDate, ColumnTypeDeadline:
+ 			if len(c.Value) > 1 || len(c.Value[0].Value) > 1 {
+				c.Error = ErrorMultipleValue
+			} else {
+				pb := c.PeekBytes()
+				year, month, day, err := dptxt.ParseDate(pb)
+				if err != nil {
+					c.Error = err
+					log.Println(err, string(pb), year, month, day)
+				} else {
+					// 日付の妥当性をチェックする。time.Date()を使った結果に対して、日付けが正規化されていないことを確認する。
+					t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+					if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
+						c.Time = new(time.Time)
+						*(c.Time) = t
+						// 有効期限型で値が現在日時より前なら有効期限切れのフラグを立てる。
+						if cd.Type == ColumnTypeDeadline && t.Before(*now) {
+							c.Expired = true
+						}
+					} else {
+						c.Error = ErrorInvalidDate
+						log.Println(ErrorInvalidDate, string(pb), year, month, day)
+					}
 				}
 			}
 		case ColumnTypeLog:
@@ -332,35 +346,6 @@ func DoMain(configpath string) {
 	if err != nil {
 		log.Println("html", err)
 	}
-}
-
-var nbyteToInt64 int
-
-func init() {
-	nbyteToInt64 = len(strconv.FormatInt(math.MaxInt64, 10)) - 1
-}
-
-func bytesToInt64(b []byte) int64 {
-	n := 0
-	var v int64 = 0
-
-	for len(b) > 0 && n < nbyteToInt64 {
-		r, d, s := dptxt.DecodeSingleDigit(b)
-		if r == utf8.RuneError {
-			// bの長さをチェックしているので、s==0にはならない。
-			return math.MaxInt64
-		}
-		if d >= 0 {
-			v = v*10 + int64(d)
-		}
-		b = b[s:]
-		n++
-	}
-	return v
-}
-
-func numericCompare(a, b []byte) int {
-	return int(bytesToInt64(a) - bytesToInt64(b))
 }
 
 const tempfile_template = "_dustpan_%s.*.tmp"
