@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -30,6 +31,28 @@ var (
 	ErrorNoCloseParenthesis           = errors.New("日付を指定してください。")
 	ErrorExtraTextAfterDate           = errors.New("日付を指定してください。")
 )
+
+type ParseError struct {
+	Filename string
+	Line     int
+	Err      error
+}
+
+func (pe *ParseError) Unwrap() error {
+	return pe.Err
+}
+
+func (pe *ParseError) Error() string {
+	return pe.Filename + ":" + strconv.FormatInt(int64(pe.Line), 10) + ": " + pe.Err.Error()
+}
+
+func NewParseError(filename string, linenum int, err error) *ParseError {
+	pe := new(ParseError)
+	pe.Filename = filename
+	pe.Line = linenum
+	pe.Err = err
+	return pe
+}
 
 const empty = ""
 
@@ -139,15 +162,18 @@ type lineScanner struct {
 	scanner  *bufio.Scanner
 	lastline []byte
 	unread   bool
+	Filename string
+	Linenum  int
 }
 
-func newLineScanner(r io.Reader) *lineScanner {
-	return &lineScanner{bufio.NewScanner(r), nil, false}
+func newLineScanner(filename string, r io.Reader) *lineScanner {
+	return &lineScanner{bufio.NewScanner(r), nil, false, filename, 0}
 }
 
 func (ls *lineScanner) nextLine() ([]byte, error) {
 	if ls.unread && ls.lastline != nil {
 		ls.unread = false
+		ls.Linenum++
 		return ls.lastline, nil
 	}
 	if ls.scanner.Scan() {
@@ -156,6 +182,7 @@ func (ls *lineScanner) nextLine() ([]byte, error) {
 		copy(t, b)
 		ls.lastline = t
 		ls.unread = false
+		ls.Linenum++
 		return t, nil
 	}
 	err := ls.scanner.Err()
@@ -192,8 +219,13 @@ func (ls *lineScanner) UnreadLine() bool {
 	if ls.unread {
 		return false
 	}
+	ls.Linenum--
 	ls.unread = true
 	return true
+}
+
+func (ls *lineScanner) NewParseError(err error) *ParseError {
+	return NewParseError(ls.Filename, ls.Linenum, err)
 }
 
 func processSection(ls *lineScanner, sec *Section) (string, error) {
@@ -201,25 +233,25 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 	ls.SkipEmptyLines()
 	line, err := ls.nextLine()
 	if err != nil {
-		return empty, err
+		return empty, ls.NewParseError(err)
 	}
 	line = bytes.TrimLeftFunc(line, isSp)
 
 	// セクション名の始まり
 	i, s := IndexFuncWithSize(line, isAt)
 	if i != 0 {
-		return empty, ErrorNoSectionNamePrefix
+		return empty, ls.NewParseError(ErrorNoSectionNamePrefix)
 	}
 	line = line[i+s:]
 
 	// セクション名の終わり
 	i, s = IndexFuncWithSize(line, isColon)
 	if i == -1 { // コロンが見つからない
-		return empty, ErrorNoSectionNameSuffix
+		return empty, ls.NewParseError(ErrorNoSectionNameSuffix)
 	}
 	name, err := normalizeText(line[:i]) // セクション名を正規化する。
 	if err != nil {
-		return empty, err
+		return empty, ls.NewParseError(err)
 	}
 	line = line[i+s:]
 
@@ -231,7 +263,7 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 	}
 	ps, err := readCompoundValues(ls, head)
 	if err != nil {
-		return empty, err
+		return empty, ls.NewParseError(err)
 	}
 	*sec = Section{ps, empty, nil, false, nil, 0}
 	return name, nil
@@ -264,7 +296,7 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]*Paragraph, error) {
 	}
 
 	if err != nil && err != io.EOF {
-		return nil, err
+		return nil, ls.NewParseError(err)
 	}
 
 	if len(pvalues) > 0 {
@@ -274,7 +306,7 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]*Paragraph, error) {
 }
 
 func ParseDocument(filename string, r io.Reader, doc *Document) error {
-	ls := newLineScanner(r)
+	ls := newLineScanner(filename, r)
 
 	secs := make(map[string]*Section)
 	var sec *Section = new(Section)
@@ -284,8 +316,8 @@ func ParseDocument(filename string, r io.Reader, doc *Document) error {
 		sec = new(Section)
 		name, err = processSection(ls, sec)
 	}
-	if err != io.EOF {
-		return err
+	if !errors.Is(err, io.EOF) {
+		return ls.NewParseError(err)
 	}
 	doc.Filename = filename
 	doc.Sections = secs
