@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+	"log"
 )
 
 // エラーメッセージ
@@ -100,6 +101,7 @@ type Document struct {
 }
 
 type Section struct {
+	Linenum     int
 	Value       []*Paragraph
 	peekedValue string
 	Error       error
@@ -109,9 +111,10 @@ type Section struct {
 }
 
 type Paragraph struct {
-	Value [][]byte
-	Error error
-	Time  *time.Time
+	Linenum int
+	Value   [][]byte
+	Error   error
+	Time    *time.Time
 }
 
 func (p *Paragraph) String() string {
@@ -235,6 +238,7 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 	if err != nil {
 		return empty, ls.NewParseError(err)
 	}
+	linenum := ls.Linenum
 	line = bytes.TrimLeftFunc(line, isSp)
 
 	// セクション名の始まり
@@ -265,14 +269,16 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 	if err != nil {
 		return empty, ls.NewParseError(err)
 	}
-	*sec = Section{ps, empty, nil, false, nil, 0}
+	*sec = Section{Linenum: linenum, Value: ps, peekedValue: empty}
 	return name, nil
 }
 
 func readCompoundValues(ls *lineScanner, head []byte) ([]*Paragraph, error) {
 	values := make([]*Paragraph, 0)
 	pvalues := make([][]byte, 0)
+	var linenum int
 	if head != nil {
+		linenum = ls.Linenum
 		pvalues = append(pvalues, head)
 	}
 
@@ -284,23 +290,27 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]*Paragraph, error) {
 				ls.UnreadLine()
 				break
 			} else {
+				if len(pvalues) == 0 {
+					linenum = ls.Linenum
+				}
 				pvalues = append(pvalues, line)
 			}
 		} else {
 			if len(pvalues) > 0 {
-				values = append(values, &Paragraph{pvalues, nil, nil})
+				values = append(values, &Paragraph{Linenum: linenum, Value: pvalues})
 				pvalues = make([][]byte, 0)
 			}
 		}
 		line, err = ls.nextLine()
 	}
 
+	// io.EOFはファイルの末尾なのでエラー扱いにしない。
 	if err != nil && err != io.EOF {
 		return nil, ls.NewParseError(err)
 	}
 
 	if len(pvalues) > 0 {
-		values = append(values, &Paragraph{pvalues, nil, nil})
+		values = append(values, &Paragraph{Linenum:linenum, Value:pvalues})
 	}
 	return values, nil
 }
@@ -317,7 +327,8 @@ func ParseDocument(filename string, r io.Reader, doc *Document) error {
 		name, err = processSection(ls, sec)
 	}
 	if !errors.Is(err, io.EOF) {
-		return ls.NewParseError(err)
+		log.Println(err)
+		return err
 	}
 	doc.Filename = filename
 	doc.Sections = secs

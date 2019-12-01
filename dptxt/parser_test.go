@@ -74,118 +74,76 @@ func TestParseRaw(t *testing.T) {
 		"test1",
 		map[string]*Section{
 			"test": &Section{
-				[]*Paragraph{
+				Value: []*Paragraph{
 					&Paragraph{
-						[][]byte{
+						Value: [][]byte{
 							[]byte("hello"),
 						},
-						nil,
-						nil,
 					},
 				},
-				"hello",
-				nil,
-				false,
-				nil,
-				0,
+				peekedValue:"hello",
 			},
 			"date": &Section{
-				[]*Paragraph{
+				Value:[]*Paragraph{
 					&Paragraph{
-						[][]byte{
+						Value: [][]byte{
 							[]byte("2019/1/2"),
 						},
-						nil,
-						nil,
 					},
 				},
-				"2019/1/2",
-				nil,
-				false,
-				nil,
-				0,
+				peekedValue:"2019/1/2",
 			},
 			"title": &Section{
-				[]*Paragraph{
+				Value: []*Paragraph{
 					&Paragraph{
-						[][]byte{
+						Value: [][]byte{
 							[]byte("dptxt parse"),
 						},
-						nil,
-						nil,
 					},
 				},
-				"dptxt parse",
-				nil,
-				false,
-				nil,
-				0,
+				peekedValue:"dptxt parse",
 			},
 			"description": &Section{
-				[]*Paragraph{
+				Value:[]*Paragraph{
 					&Paragraph{
-						[][]byte{
+						Value:[][]byte{
 							[]byte("ほんじつは、"),
 							[]byte("おひがらもよく、"),
 							[]byte("云々。。。"),
 						},
-						nil,
-						nil,
 					},
 					&Paragraph{
-						[][]byte{
+						Value:[][]byte{
 							[]byte("あれこれ"),
 							[]byte("これそれ"),
 						},
-						nil,
-						nil,
 					},
 				},
-				"ほんじつは、",
-				nil,
-				false,
-				nil,
-				0,
+				peekedValue:"ほんじつは、",
 			},
 			"作者": &Section{
-				[]*Paragraph{
+				Value:[]*Paragraph{
 					&Paragraph{
-						[][]byte{
+						Value:[][]byte{
 							[]byte("ボブ"),
 						},
-						nil,
-						nil,
 					},
 				},
-				"ボブ",
-				nil,
-				false,
-				nil,
-				0,
+				peekedValue:"ボブ",
 			},
 			"compile option": &Section{
-				[]*Paragraph{
+				Value:[]*Paragraph{
 					&Paragraph{
-						[][]byte{
+						Value:[][]byte{
 							[]byte("-O2"),
 						},
-						nil,
-						nil,
 					},
 				},
-				"-O2",
-				nil,
-				false,
-				nil,
-				0,
+				peekedValue:"-O2",
 			},
 			"author": &Section{
-				[]*Paragraph{},
-				"",
-				nil,
-				false,
-				nil,
-				0,
+				Value:[]*Paragraph{},
+				peekedValue:"",
 			},
 		},
 		nil,

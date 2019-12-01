@@ -30,6 +30,28 @@ var (
 	ErrorMultipleValue     = errors.New("複数の値")
 )
 
+type ValueError struct {
+	Filename string
+	Linenum  int
+	err      error
+}
+
+func (ve *ValueError) Error() string {
+	return ve.Filename + ":" + strconv.FormatInt(int64(ve.Linenum), 10) + " " + ve.err.Error()
+}
+
+func (ve *ValueError) Unwrap() error {
+	return ve.err
+}
+
+func NewValueError(filename string, linenum int, err error) *ValueError {
+	ve := new(ValueError)
+	ve.Filename = filename
+	ve.Linenum = linenum
+	ve.err = err
+	return ve
+}
+
 type DustpanConfig struct {
 	SrcPath    []string       `json:"src"`
 	Html       HtmlConfig     `json:"html"`
@@ -247,25 +269,24 @@ func preprocessDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
 		}
 		switch cd.Type {
 		case ColumnTypeNumber:
- 			if len(c.Value) > 1 || len(c.Value[0].Value) > 1 {
-				c.Error = ErrorMultipleValue
+			if len(c.Value) > 1 || len(c.Value[0].Value) > 1 {
+				c.Error = NewValueError(doc.Filename, c.Value[0].Linenum, ErrorMultipleValue)
 			} else {
 				num, err := strconv.ParseInt(c.PeekString(), 10, 64)
 				if err != nil {
-					c.Error = err
+					c.Error = NewValueError(doc.Filename, c.Linenum, err)
 				} else {
 					c.Number = num
 				}
 			}
 		case ColumnTypeDate, ColumnTypeDeadline:
- 			if len(c.Value) > 1 || len(c.Value[0].Value) > 1 {
-				c.Error = ErrorMultipleValue
+			if len(c.Value) > 1 || len(c.Value[0].Value) > 1 {
+				c.Error = NewValueError(doc.Filename, c.Value[0].Linenum, ErrorMultipleValue)
 			} else {
 				pb := c.PeekBytes()
 				year, month, day, err := dptxt.ParseDate(pb)
 				if err != nil {
-					c.Error = err
-					log.Println(err, string(pb), year, month, day)
+					c.Error = NewValueError(doc.Filename, c.Linenum, err)
 				} else {
 					// 日付の妥当性をチェックする。time.Date()を使った結果に対して、日付けが正規化されていないことを確認する。
 					t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
@@ -277,32 +298,33 @@ func preprocessDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
 							c.Expired = true
 						}
 					} else {
-						c.Error = ErrorInvalidDate
-						log.Println(ErrorInvalidDate, string(pb), year, month, day)
+						c.Error = NewValueError(doc.Filename, c.Linenum, ErrorInvalidDate)
 					}
 				}
 			}
 		case ColumnTypeLog:
 			for _, p := range c.Value {
-				nv := len(p.Value)
-				if nv > 0 {
-					lp := p.Value[nv-1]
-					year, month, day, err := dptxt.ParseLogDate(p.Value[nv-1])
+				if len(p.Value) > 0 {
+					year, month, day, err := dptxt.ParseLogDate(p.Value[len(p.Value)-1])
 					if err != nil {
-						p.Error = err
-						log.Println(err, string(lp), year, month, day)
+						p.Error = NewValueError(doc.Filename, p.Linenum+len(p.Value)-1, err)
 					} else {
 						t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
 						if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
 							p.Time = new(time.Time)
 							*(p.Time) = t
 						} else {
-							p.Error = ErrorInvalidDate
-							log.Println(ErrorInvalidDate, string(lp), year, month, day)
+							p.Error = NewValueError(doc.Filename, p.Linenum+len(p.Value)-1, ErrorInvalidDate)
 						}
 					}
 				}
+				if p.Error != nil {
+					log.Println(p.Error)
+				}
 			}
+		}
+		if c.Error != nil {
+			log.Println(c.Error)
 		}
 	}
 }
