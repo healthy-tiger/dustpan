@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"github.com/healthy-tiger/dustpan/dptxt"
 	"html"
@@ -20,6 +21,7 @@ var scriptClose = []byte("</script>")
 
 var divErrFmt string = `<div class="dp-err" data-msg="%v"></div>`
 var divExpire []byte = []byte(`<div class="dp-expired"></div>`)
+var divDateFmt string = `<div class="dp-date" data-year="%v" data-month="%v" data-day="%v"></div>`
 
 var pOpen []byte = []byte(`<div class="dp-p">`)
 var pClose []byte = []byte("</div>")
@@ -48,11 +50,17 @@ var contentOpen1 string = `<!DOCTYPE html>
 
 var defaultstyle []byte = []byte(`
 <style>
-.dp-t { display: table; }
+.dp-t { display: table; width: 100%; }
 .dp-t .dp-h { display: table-header-group; }
 .dp-t .dp-b { display: table-row-group; }
 .dp-t .dp-r { display: table-row; }
 .dp-t .dp-r .dp-c { display: table-cell;}
+.dp-t .dp-b .dp-c:empty { background-color: #eee; }
+.dp-t .dp-date:after { content: attr(data-year) "/" attr(data-month) "/" attr(data-day); }
+.dp-t .dp-err { color: red; }
+.dp-t .dp-err:after { content: "error: " attr(data-msg); }
+.dp-t .dp-expired { display: inline; color: blue; }
+.dp-t .dp-expired:after { content: "expired"; }
 </style>`)
 
 var contentOpen2 string = `
@@ -86,8 +94,20 @@ func htmlWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
 		}
 		sep = br
 	}
+	if para.Time != nil {
+		year, month, day := para.Time.Date()
+		_, err = w.WriteString(fmt.Sprintf(divDateFmt, year, int(month), day))
+		if err != nil {
+			return err
+		}
+	}
 	if para.Error != nil {
-		_, err = w.WriteString(fmt.Sprintf(divErrFmt, html.EscapeString(para.Error.Error())))
+		// para.ErrorはValueErrorの想定だけど、将来的に変更するかもしれないので、Unwrapする処理を入れておく。
+		ierr := errors.Unwrap(para.Error)
+		if ierr == nil {
+			ierr = para.Error
+		}
+		_, err = w.WriteString(fmt.Sprintf(divErrFmt, html.EscapeString(ierr.Error())))
 		if err != nil {
 			return err
 		}
@@ -108,15 +128,28 @@ func htmlWriteSection(sec *dptxt.Section, secname string, w *bufio.Writer) error
 	}
 
 	if sec != nil {
-		for _, p := range sec.Value {
-			err = htmlWriteParagraph(p, w)
+		if sec.Time != nil {
+			year, month, day := sec.Time.Date()
+			_, err = w.WriteString(fmt.Sprintf(divDateFmt, year, int(month), day))
 			if err != nil {
 				return err
+			}
+		} else {
+			for _, p := range sec.Value {
+				err = htmlWriteParagraph(p, w)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
 		if sec.Error != nil {
-			_, err = w.WriteString(fmt.Sprintf(divErrFmt, html.EscapeString(sec.Error.Error())))
+			// para.ErrorはValueErrorの想定だけど、将来的に変更するかもしれないので、Unwrapする処理を入れておく。
+			ierr := errors.Unwrap(sec.Error)
+			if ierr == nil {
+				ierr = sec.Error
+			}
+			_, err = w.WriteString(fmt.Sprintf(divErrFmt, html.EscapeString(ierr.Error())))
 			if err != nil {
 				return err
 			}
