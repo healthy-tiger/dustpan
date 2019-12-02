@@ -343,7 +343,7 @@ func TestParseLogDate1(t *testing.T) {
 		[]byte("abc(2019年11月13日)"),
 	}
 	for _, d := range dates {
-		year, month, day, err := ParseLogDate(d)
+		year, month, day, _, err := ParseLogDate(d)
 		if err != nil {
 			t.Error(string(d), year, month, day, err)
 		}
@@ -367,7 +367,7 @@ func TestParseLogDate2(t *testing.T) {
 	}
 
 	for _, d := range dates {
-		year, month, day, err := ParseLogDate(d)
+		year, month, day, _, err := ParseLogDate(d)
 		if err != nil {
 			t.Error(string(d), year, month, day, err)
 		}
@@ -393,7 +393,7 @@ func TestParseLogDateErr(t *testing.T) {
 	}
 
 	for _, d := range dates {
-		year, month, day, err := ParseLogDate(d)
+		year, month, day, _, err := ParseLogDate(d)
 		if err == nil {
 			t.Error(string(d), year, month, day)
 		}

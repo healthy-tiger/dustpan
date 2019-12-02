@@ -305,13 +305,14 @@ func preprocessDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
 		case ColumnTypeLog:
 			for _, p := range c.Value {
 				if len(p.Value) > 0 {
-					year, month, day, err := dptxt.ParseLogDate(p.Value[len(p.Value)-1])
+					year, month, day, rest, err := dptxt.ParseLogDate(p.Value[len(p.Value)-1])
 					if err != nil {
 						p.Error = NewValueError(doc.Filename, p.Linenum+len(p.Value)-1, err)
 					} else {
 						t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
 						if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
 							p.Time = new(time.Time)
+							p.Value[len(p.Value)-1] = rest
 							*(p.Time) = t
 						} else {
 							p.Error = NewValueError(doc.Filename, p.Linenum+len(p.Value)-1, ErrorInvalidDate)

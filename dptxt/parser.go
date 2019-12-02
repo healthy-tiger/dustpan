@@ -586,7 +586,7 @@ func ParseDate(b []byte) (int, int, int, error) {
 	return year, month, day, ErrorUnknownDateSuffix
 }
 
-func ParseLogDate(b []byte) (int, int, int, error) {
+func ParseLogDate(b []byte) (int, int, int, []byte, error) {
 	var (
 		year, month, day int
 		i, s             int
@@ -594,17 +594,19 @@ func ParseLogDate(b []byte) (int, int, int, error) {
 	)
 	i, s = LastIndexFuncWithSize(b, isOpenParenthesis)
 	if i < 0 {
-		return year, month, day, ErrorNoOpenParenthesis
+		return year, month, day, nil, ErrorNoOpenParenthesis
 	}
+	c := b[:i] // 日付けよりも前の部分
 	b = b[i+s:]
+	// 最後の左括弧から一番近い右括弧までの間を日付が入っていると想定してパースする。
 	i, s = IndexFuncWithSize(b, isCloseParenthesis)
 	if i < 0 {
-		return year, month, day, ErrorNoCloseParenthesis
+		return year, month, day, c, ErrorNoCloseParenthesis
 	}
 	// 閉じカッコの後に文字が続く場合は、日付けとみなさない。
 	if len(bytes.TrimLeftFunc(b[i+s:], isSp)) > 0 {
-		return year, month, day, ErrorExtraTextAfterDate
+		return year, month, day, c, ErrorExtraTextAfterDate
 	}
 	year, month, day, err = ParseDate(b[:i])
-	return year, month, day, err
+	return year, month, day, c, err
 }
