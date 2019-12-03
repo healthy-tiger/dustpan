@@ -22,6 +22,7 @@ var scriptClose = []byte("</script>")
 var divErrFmt string = `<div class="dp-err" data-msg="%v"></div>`
 var divExpire []byte = []byte(`<div class="dp-expired"></div>`)
 var divDateFmt string = `<div class="dp-date" data-year="%v" data-month="%v" data-day="%v"></div>`
+var divDateExpiredFmt string = `<div class="dp-date dp-expired" data-year="%v" data-month="%v" data-day="%v"></div>`
 
 var pOpen []byte = []byte(`<div class="dp-p">`)
 var pClose []byte = []byte("</div>")
@@ -59,8 +60,7 @@ var defaultstyle []byte = []byte(`
 .dp-t .dp-date:after { content: attr(data-year) "/" attr(data-month) "/" attr(data-day); }
 .dp-t .dp-err { color: red; }
 .dp-t .dp-err:after { content: "error: " attr(data-msg); }
-.dp-t .dp-expired { display: inline; color: blue; }
-.dp-t .dp-expired:after { content: "expired"; }
+.dp-t .dp-date.dp-expired:after { content: "expired"; }
 </style>`)
 
 var contentOpen2 string = `
@@ -130,7 +130,11 @@ func htmlWriteSection(sec *dptxt.Section, secname string, w *bufio.Writer) error
 	if sec != nil {
 		if sec.Time != nil {
 			year, month, day := sec.Time.Date()
-			_, err = w.WriteString(fmt.Sprintf(divDateFmt, year, int(month), day))
+			if sec.Expired {
+				_, err = w.WriteString(fmt.Sprintf(divDateExpiredFmt, year, int(month), day))
+			} else {
+				_, err = w.WriteString(fmt.Sprintf(divDateFmt, year, int(month), day))
+			}
 			if err != nil {
 				return err
 			}
@@ -150,13 +154,6 @@ func htmlWriteSection(sec *dptxt.Section, secname string, w *bufio.Writer) error
 				ierr = sec.Error
 			}
 			_, err = w.WriteString(fmt.Sprintf(divErrFmt, html.EscapeString(ierr.Error())))
-			if err != nil {
-				return err
-			}
-		}
-
-		if sec.Expired {
-			_, err = w.Write(divExpire)
 			if err != nil {
 				return err
 			}
