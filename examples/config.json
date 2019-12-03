@@ -1,0 +1,25 @@
+{
+	"src":[ "*.txt" ],
+	"html": {
+		"dst":"issue-list.html",
+		"title":"課題リスト",
+		"display": [
+			"title",
+			"date occured",
+			"author",
+			"description",
+			"log"
+		]
+	},
+	"order": [
+		{ "name": "date occured" },
+		{ "name": "author" }
+	],
+	"columns": [
+		{ "name":"title", "type":"text" },
+		{ "name":"date occured", "type":"date" },
+		{ "name":"author", "type":"text" },
+		{ "name":"description", "type":"text" },
+		{ "name":"log", "type":"log" }
+   	]
+}
