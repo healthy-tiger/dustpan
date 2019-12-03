@@ -22,6 +22,7 @@ var scriptClose = []byte("</script>")
 var divErrFmt string = `<div class="dp-err" data-msg="%v"></div>`
 var divExpire []byte = []byte(`<div class="dp-expired"></div>`)
 var divDateFmt string = `<div class="dp-date" data-year="%v" data-month="%v" data-day="%v"></div>`
+var divDateWithSuffixFmt string = `<div class="dp-date" data-year="%v" data-month="%v" data-day="%v" data-suffix="%v"></div>`
 var divDateExpiredFmt string = `<div class="dp-date dp-expired" data-year="%v" data-month="%v" data-day="%v"></div>`
 
 var pOpen []byte = []byte(`<div class="dp-p">`)
@@ -76,6 +77,13 @@ var contentClose string = `</div>
 </body>
 </html>`
 
+func byteIsNilOrEmpty(b []byte) bool {
+	if b == nil || len(b) == 0 {
+		return true
+	}
+	return false
+}
+
 func htmlWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
 	_, err := w.Write(pOpen)
 	if err != nil {
@@ -96,7 +104,11 @@ func htmlWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
 	}
 	if para.Time != nil {
 		year, month, day := para.Time.Date()
-		_, err = w.WriteString(fmt.Sprintf(divDateFmt, year, int(month), day))
+		if byteIsNilOrEmpty(para.TimeSuffix) {
+			_, err = w.WriteString(fmt.Sprintf(divDateFmt, year, int(month), day))
+		} else {
+			_, err = w.WriteString(fmt.Sprintf(divDateWithSuffixFmt, year, int(month), day, html.EscapeString(string(para.TimeSuffix))))
+		}
 		if err != nil {
 			return err
 		}

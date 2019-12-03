@@ -5,11 +5,11 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log"
 	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
-	"log"
 )
 
 // エラーメッセージ
@@ -111,10 +111,11 @@ type Section struct {
 }
 
 type Paragraph struct {
-	Linenum int
-	Value   [][]byte
-	Error   error
-	Time    *time.Time
+	Linenum    int
+	Value      [][]byte
+	Error      error
+	Time       *time.Time
+	TimeSuffix []byte
 }
 
 func (p *Paragraph) String() string {
@@ -310,7 +311,7 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]*Paragraph, error) {
 	}
 
 	if len(pvalues) > 0 {
-		values = append(values, &Paragraph{Linenum:linenum, Value:pvalues})
+		values = append(values, &Paragraph{Linenum: linenum, Value: pvalues})
 	}
 	return values, nil
 }
@@ -581,7 +582,7 @@ func ParseDate(b []byte) (int, int, int, []byte, error) {
 
 	// 日付けの直後の文字がないか、空白でなければエラー
 	if len(b) == 0 || isSp(r) {
-		return year, month, day, b, nil
+		return year, month, day, bytes.TrimFunc(b, isSp), nil
 	}
 	return year, month, day, nil, ErrorUnknownDateSuffix
 }
@@ -595,7 +596,7 @@ func ParseLogDate(b []byte) (int, int, int, []byte, []byte, error) {
 	)
 	i, s = LastIndexFuncWithSize(b, isOpenParenthesis)
 	if i < 0 {
-		return year, month, day, nil, nil,ErrorNoOpenParenthesis
+		return year, month, day, nil, nil, ErrorNoOpenParenthesis
 	}
 	pre := b[:i] // 日付けよりも前の部分
 	b = b[i+s:]
@@ -609,5 +610,5 @@ func ParseLogDate(b []byte) (int, int, int, []byte, []byte, error) {
 		return year, month, day, pre, nil, ErrorExtraTextAfterDate
 	}
 	year, month, day, post, err := ParseDate(b[:i])
-	return year, month, day, pre, bytes.TrimLeftFunc(post, isSp), err
+	return year, month, day, pre, post, err
 }
