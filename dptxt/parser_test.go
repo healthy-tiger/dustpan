@@ -168,12 +168,12 @@ func TestParseDate1(t *testing.T) {
 	}
 
 	for _, d := range dates {
-		year, month, day, err := ParseDate(d)
+		year, month, day, pre, err := ParseDate(d)
 		if err != nil {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), err)
 		}
 		if year != 2019 || month != 11 || day != 13 {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre),  err)
 		}
 	}
 }
@@ -188,12 +188,12 @@ func TestParseDate2(t *testing.T) {
 	}
 
 	for _, d := range dates {
-		year, month, day, err := ParseDate(d)
+		year, month, day, pre, err := ParseDate(d)
 		if err != nil {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), err)
 		}
 		if year != 2003 || month != 1 || day != 3 {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), err)
 		}
 	}
 }
@@ -208,12 +208,12 @@ func TestParseDate3(t *testing.T) {
 	}
 
 	for _, d := range dates {
-		year, month, day, err := ParseDate(d)
+		year, month, day, pre, err := ParseDate(d)
 		if err != nil {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), err)
 		}
 		if year != 2003 || month != 1 || day != 3 {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), err)
 		}
 	}
 }
@@ -236,12 +236,12 @@ func TestParseDate4(t *testing.T) {
 	}
 
 	for _, d := range dates {
-		year, month, day, err := ParseDate(d)
+		year, month, day, pre, err := ParseDate(d)
 		if err != nil {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), err)
 		}
 		if year != 2003 || month != 1 || day != 3 {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), err)
 		}
 	}
 }
@@ -274,12 +274,12 @@ func TestParseDate5(t *testing.T) {
 	}
 
 	for _, d := range dates {
-		year, month, day, err := ParseDate(d)
+		year, month, day, pre, err := ParseDate(d)
 		if err != nil {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), err)
 		}
 		if year != 2003 || month != 1 || day != 3 {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), err)
 		}
 	}
 }
@@ -296,12 +296,12 @@ func TestParseDate6(t *testing.T) {
 	}
 
 	for _, d := range dates {
-		year, month, day, err := ParseDate(d)
+		year, month, day, pre, err := ParseDate(d)
 		if err != nil {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), err)
 		}
 		if year != 2003 || month != 1 || day != 3 {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), err)
 		}
 	}
 }
@@ -328,9 +328,9 @@ func TestParseDateErr(t *testing.T) {
 	}
 
 	for _, d := range dates {
-		year, month, day, err := ParseDate(d)
+		year, month, day, pre, err := ParseDate(d)
 		if err == nil {
-			t.Error(string(d), year, month, day)
+			t.Error(string(d), year, month, day, string(pre))
 		}
 	}
 }
@@ -343,12 +343,12 @@ func TestParseLogDate1(t *testing.T) {
 		[]byte("abc(2019年11月13日)"),
 	}
 	for _, d := range dates {
-		year, month, day, _, err := ParseLogDate(d)
+		year, month, day, pre, post, err := ParseLogDate(d)
 		if err != nil {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), string(post), err)
 		}
 		if year != 2019 || month != 11 || day != 13 {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), string(post), err)
 		}
 	}
 }
@@ -364,16 +364,64 @@ func TestParseLogDate2(t *testing.T) {
 		[]byte("hello(2003/1/3）"),
 		[]byte("hello(2003/1/3 world）"),
 		[]byte("(2003/1/3)"),
+		[]byte("(2003/1/3 john)"),
 	}
 
 	for _, d := range dates {
-		year, month, day, _, err := ParseLogDate(d)
+		year, month, day, pre, post, err := ParseLogDate(d)
 		if err != nil {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), string(post), err)
 		}
 		if year != 2003 || month != 1 || day != 3 {
-			t.Error(string(d), year, month, day, err)
+			t.Error(string(d), year, month, day, string(pre), string(post), err)
 		}
+	}
+}
+
+func TestParseLogDate3(t *testing.T) {
+	d := []byte("hello(2003/1/3 world）")
+	year, month, day, pre, post, err := ParseLogDate(d)
+	if err != nil {
+		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	}
+	if year != 2003 || month != 1 || day != 3 {
+		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	}
+	if string(pre) != "hello" {
+		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	}
+	if string(post) != "world" {
+		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	}
+
+	d = []byte("(2003/1/3 john)")
+	year, month, day, pre, post, err = ParseLogDate(d)
+	if err != nil {
+		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	}
+	if year != 2003 || month != 1 || day != 3 {
+		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	}
+	if string(pre) != "" {
+		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	}
+	if string(post) != "john" {
+		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	}
+	
+	d = []byte("hello(2003年1月3日 world)")
+	year, month, day, pre, post, err = ParseLogDate(d)
+	if err != nil {
+		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	}
+	if year != 2003 || month != 1 || day != 3 {
+		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	}
+	if string(pre) != "hello" {
+		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	}
+	if string(post) != "world" {
+		t.Error(string(d), year, month, day, string(pre), string(post), err)
 	}
 }
 
@@ -393,9 +441,9 @@ func TestParseLogDateErr(t *testing.T) {
 	}
 
 	for _, d := range dates {
-		year, month, day, _, err := ParseLogDate(d)
+		year, month, day, pre, post, err := ParseLogDate(d)
 		if err == nil {
-			t.Error(string(d), year, month, day)
+			t.Error(string(d), year, month, day, string(pre), string(post))
 		}
 	}
 }
