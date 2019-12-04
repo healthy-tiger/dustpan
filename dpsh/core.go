@@ -1,4 +1,4 @@
-package main
+package dpsh
 
 import (
 	"encoding/json"
@@ -356,13 +356,13 @@ func preprocessAllDocs(config *DustpanConfig, docs []*dptxt.Document) {
 func DoMain(configpath string) {
 	configname, err := filepath.Abs(configpath)
 	if err != nil {
-		log.Fatal(configpath, err)
+		log.Fatal(err)
 	}
 
 	var config DustpanConfig
 	err = LoadConfig(configname, &config)
 	if err != nil {
-		log.Fatal(configname, err)
+		log.Fatal(err)
 	}
 
 	basepath := filepath.Dir(configname)
