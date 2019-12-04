@@ -210,7 +210,7 @@ func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
 		cdefs[si] = config.GetColumnDef(sc.Name)
 	}
 
-	now := time.Now()
+	var zerotime time.Time
 
 	sort.Slice(docs, func(i, j int) bool {
 		a := docs[i]
@@ -233,11 +233,11 @@ func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
 				r = int64(strings.Compare(av, bv))
 			} else if cd.Type == ColumnTypeDate || cd.Type == ColumnTypeDeadline {
 				// Timeメンバがnilの場合は現在時刻が入っているものとして扱う。
-				at := &now
+				at := &zerotime
 				if as != nil && as.Time != nil {
 					at = as.Time
 				}
-				bt := &now
+				bt := &zerotime
 				if bs != nil && bs.Time != nil {
 					bt = bs.Time
 				}
