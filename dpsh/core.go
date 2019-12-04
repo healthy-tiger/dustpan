@@ -269,40 +269,48 @@ func preprocessDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
 		}
 		switch cd.Type {
 		case ColumnTypeNumber:
-			if len(c.Value) > 1 || len(c.Value[0].Value) > 1 {
-				c.Error = NewValueError(doc.Filename, c.Value[0].Linenum, ErrorMultipleValue)
-			} else {
-				num, err := strconv.ParseInt(c.PeekString(), 10, 64)
-				if err != nil {
-					c.Error = NewValueError(doc.Filename, c.Linenum, err)
-				} else {
-					c.Number = num
-				}
-			}
-		case ColumnTypeDate, ColumnTypeDeadline:
-			if len(c.Value) > 1 || len(c.Value[0].Value) > 1 {
-				c.Error = NewValueError(doc.Filename, c.Value[0].Linenum, ErrorMultipleValue)
-			} else {
-				pb := c.PeekBytes()
-				year, month, day, post, err := dptxt.ParseDate(pb)
-				if err != nil {
-					c.Error = NewValueError(doc.Filename, c.Linenum, err)
-				} else if len(post) > 0 {
+			if len(c.Value) == 1 {
+				if len(c.Value[0].Value) > 1 {
 					c.Error = NewValueError(doc.Filename, c.Value[0].Linenum, ErrorMultipleValue)
 				} else {
-					// 日付の妥当性をチェックする。time.Date()を使った結果に対して、日付けが正規化されていないことを確認する。
-					t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
-					if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
-						c.Time = new(time.Time)
-						*(c.Time) = t
-						// 有効期限型で値が現在日時より前なら有効期限切れのフラグを立てる。
-						if cd.Type == ColumnTypeDeadline && t.Before(*now) {
-							c.Expired = true
-						}
+					num, err := strconv.ParseInt(c.PeekString(), 10, 64)
+					if err != nil {
+						c.Error = NewValueError(doc.Filename, c.Linenum, err)
 					} else {
-						c.Error = NewValueError(doc.Filename, c.Linenum, ErrorInvalidDate)
+						c.Number = num
 					}
 				}
+			} else if len(c.Value) >= 2 {
+				c.Error = NewValueError(doc.Filename, c.Value[0].Linenum, ErrorMultipleValue)
+			}
+		case ColumnTypeDate, ColumnTypeDeadline:
+			if len(c.Value) == 1 {
+				if len(c.Value[0].Value) > 1 {
+					c.Error = NewValueError(doc.Filename, c.Value[0].Linenum, ErrorMultipleValue)
+				} else {
+					pb := c.PeekBytes()
+					year, month, day, post, err := dptxt.ParseDate(pb)
+					if err != nil {
+						c.Error = NewValueError(doc.Filename, c.Linenum, err)
+					} else if len(post) > 0 {
+						c.Error = NewValueError(doc.Filename, c.Value[0].Linenum, ErrorMultipleValue)
+					} else {
+						// 日付の妥当性をチェックする。time.Date()を使った結果に対して、日付けが正規化されていないことを確認する。
+						t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+						if t.Year() == year && t.Month() == time.Month(month) && t.Day() == day {
+							c.Time = new(time.Time)
+							*(c.Time) = t
+							// 有効期限型で値が現在日時より前なら有効期限切れのフラグを立てる。
+							if cd.Type == ColumnTypeDeadline && t.Before(*now) {
+								c.Expired = true
+							}
+						} else {
+							c.Error = NewValueError(doc.Filename, c.Linenum, ErrorInvalidDate)
+						}
+					}
+				}
+			} else if len(c.Value) >= 2 {
+				c.Error = NewValueError(doc.Filename, c.Value[0].Linenum, ErrorMultipleValue)
 			}
 		case ColumnTypeLog:
 			for _, p := range c.Value {

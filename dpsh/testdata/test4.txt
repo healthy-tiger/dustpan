@@ -1,5 +1,6 @@
 @name: timy
 @age: 5
+@birthday:
 @hobby: swimming
 
 @log :
