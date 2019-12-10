@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"bytes"
 )
 
 var sepEmpty = []byte("")
@@ -123,13 +124,7 @@ func (config *DustpanConfig) GetColumnDef(name string) *ColumnConfig {
 }
 
 func LoadConfig(filename string, config *DustpanConfig) error {
-	f, err := os.Open(filename)
-	if f == nil {
-		return err
-	}
-	defer f.Close()
-
-	buf, err := ioutil.ReadAll(f)
+	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
 	}
@@ -187,12 +182,11 @@ func LoadAllFiles(basepath string, paths []string) []*dptxt.Document {
 }
 
 func LoadFile(filename string, doc *dptxt.Document) error {
-	f, err := os.Open(filename)
+	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-
+	f := bytes.NewReader(b)
 	err = dptxt.ParseDocument(filename, f, doc)
 	if err != nil {
 		return err
