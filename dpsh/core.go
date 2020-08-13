@@ -1,6 +1,7 @@
 package dpsh
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"bytes"
 )
 
 var sepEmpty = []byte("")
@@ -92,6 +92,16 @@ type SortConfig struct {
 	Descending bool   `json:"descending"` // trueなら降順
 }
 
+func skipUtf8BOM(src []byte) []byte {
+	if len(src) < 3 {
+		return src
+	}
+	if src[0] == 0xEF && src[1] == 0xBB && src[2] == 0xBF {
+		return src[3:]
+	}
+	return src
+}
+
 func validateColumnConfig(cc *ColumnConfig) error {
 	if len(cc.Name) == 0 {
 		return ErrorNoColumnName
@@ -128,6 +138,7 @@ func LoadConfig(filename string, config *DustpanConfig) error {
 	if err != nil {
 		return err
 	}
+	buf = skipUtf8BOM(buf)
 
 	err = json.Unmarshal(buf, &config)
 	if err != nil {
@@ -186,6 +197,7 @@ func LoadFile(filename string, doc *dptxt.Document) error {
 	if err != nil {
 		return err
 	}
+	b = skipUtf8BOM(b)
 	f := bytes.NewReader(b)
 	err = dptxt.ParseDocument(filename, f, doc)
 	if err != nil {
