@@ -21,7 +21,6 @@
 		{ "name":"title", "type":"text", "width":"15em" },
 		{ "name":"date occured", "type":"date", "width":"10em" },
 		{ "name":"author", "type":"text","width":"12em" },
-		{ "name":"description", "type":"text" },
 		{ "name":"log", "type":"log" }
    	]
 }

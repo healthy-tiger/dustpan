@@ -239,13 +239,19 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 		if err == nil {
 			_, err = w.Write(defaultstyle)
 		}
-		for _, cd := range config.ColumnDefs {
-			if cd.Width == "" {
-				w.Write([]byte(fmt.Sprintf(defaultColumnWithoutWidth, cd.Name)))
-			} else {
+		dd := make(map[string]*ColumnConfig)
+		for i := range config.ColumnDefs {
+			cd := &(config.ColumnDefs[i])
+			dd[cd.Name] = cd
+		}
+		for _, dn := range config.Html.DisplayColumns {
+			if cd, ok := dd[dn]; ok && cd.Width != "" {
 				w.Write([]byte(fmt.Sprintf(defaultColumnWithWidth, cd.Name, cd.Width, cd.Width)))
+			} else {
+				w.Write([]byte(fmt.Sprintf(defaultColumnWithoutWidth, dn)))
 			}
 		}
+
 		if err == nil {
 			_, err = w.Write(styleClose)
 		}
