@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+<title>課題リスト</title>
+<style>
+body { background-color: #fff; }
+html {
+    padding: 0px;
+    margin: 0px;
+}
+
+body {
+    font-family: "Meiryo UI";
+    font-size: 9pt;
+    padding: 0px;
+    margin: 0px;
+}
+
+.dp-heading {
+    font-size: 2em;
+    margin: 10pt;
+    display: flex;
+}
+
+.dp-heading>.dp-title {
+    flex: initial;
+}
+
+.dp-heading>.dp-update {
+    font-size: 0.5em;
+    flex: auto;
+    text-align: right;
+}
+
+.dp-heading>.dp-title:after {
+    content: attr(data-title);
+}
+
+.dp-heading>.dp-update:after {
+    content: attr(data-date) " "attr(date-time) " 更新";
+}
+
+.dp-t {
+    width: 100%;
+}
+
+.dp-t .dp-h {
+    width: 100%;
+    font-weight: bold;
+}
+
+.dp-t .dp-b {
+    width: 100%;
+}
+
+.dp-t .dp-r {
+    width: 100%;
+    display: flex;
+    justify-content: stretch;
+    flex-wrap: nowrap;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+.dp-t .dp-r>.dp-c {
+    flex-grow: 1;
+    flex-shrink: 0;
+    width: 0px;
+    flex-basis: 0px;
+    padding: 3pt;
+}
+
+.dp-t>.dp-b>.dp-r:nth-child(n+2) {
+    border-style: solid;
+    border-color: #999;
+    border-width: 1px 0px 0px 0px;
+}
+
+.dp-t .dp-r>.dp-c:nth-child(n+2) {
+    border-style: solid;
+    border-color: #999;
+    border-width: 0px 0px 0px 1px;
+}
+
+.dp-t .dp-h .dp-r {
+    white-space: nowrap;
+    vertical-align: bottom;
+    text-align: center;
+    border-bottom-width: 3px;
+    border-bottom-style: double;
+    border-bottom-color: #999;
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c {
+    vertical-align: top;
+}
+
+/* 空白のままになっているセルが強調されるように */
+.dp-t>.dp-b>.dp-r>.dp-c:empty {
+    background-color: #eeeeee;
+    text-align: center;
+}
+
+.dp-t .dp-b .dp-r .dp-c:empty::before {
+    content: "?";
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c .dp-err {
+    display: inline-block;
+    background-color: red;
+    color: white;
+    font-weight: bold;
+    font-size: 0.8em;
+    padding: 0.1em;
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c .dp-err:before {
+    content: "エラー：";
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c .dp-err:after {
+    content: attr(data-msg);
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c>.dp-date {
+    text-align: center;
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c>.dp-date.dp-expired {
+    color: red;
+    font-weight: bold;
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c>.dp-date:after {
+    content: attr(data-year) "/"attr(data-month) "/"attr(data-day);
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c>.dp-date.dp-expired:after {
+    content: attr(data-year) "/"attr(data-month) "/"attr(data-day);
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c .dp-p {
+    padding-top: 1.5em;
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c .dp-p:first-child {
+    padding-top: 0em;
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c .dp-p:last-child {
+    padding-bottom: 0em;
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c .dp-p>.dp-date {
+    display: inline;
+    margin-left: 0.5em;
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c .dp-p>.dp-date:after {
+    content: "("attr(data-year) "/"attr(data-month) "/"attr(data-day) ")";
+}
+
+.dp-t>.dp-b>.dp-r>.dp-c .dp-p>.dp-date[data-suffix]:after {
+    content: "("attr(data-year) "/"attr(data-month) "/"attr(data-day) " "attr(data-suffix) ")";
+}
+
+@media print {
+    html {
+        margin: 0px;
+        padding: 0px;
+    }
+
+    body {
+        margin: 0px;
+        padding: 0px;
+    }
+
+    .dp-heading {
+        display: none;
+    }
+
+    .dp-t {
+        font-size: 7pt;
+        border-width: 1px;
+        border-color: #999;
+        border-style: solid;
+        box-sizing: border-box;
+    }
+
+    .dp-t .dp-h {
+        break-inside: avoid;
+    }
+
+    .dp-t .dp-b .dp-r {
+        break-inside: auto;
+    }
+
+    .dp-t .dp-b .dp-r .dp-c .dp-p {
+        break-inside: avoid;
+    }
+
+    .dp-t .dp-b .dp-r .dp-c:empty {
+        background-color: transparent;
+    }
+
+    .dp-t .dp-b .dp-r .dp-c .dp-err {
+        display: none;
+    }
+}
+</style>
+</head>
+<body>
+<div class="dp-heading">
+<div class="dp-title" data-title="課題リスト"></div>
+<div class="dp-update" data-date="2020/9/15" date-time="14:51:45"></div>
+</div>
+<div class="dp-t"><div class="dp-h"><div class="dp-r"><div class="dp-c" data-section="filename">filename</div><div class="dp-c" data-section="title">title</div><div class="dp-c" data-section="date occured">date occured</div><div class="dp-c" data-section="author">author</div><div class="dp-c" data-section="description">description</div><div class="dp-c" data-section="log">log</div></div></div><div class="dp-b"><div class="dp-r" data-filename="C:\Users\f3014610\Documents\Devel\dustpan\examples\issue-2.txt"><div class="dp-c" data-section="filename"><div class="dp-p">issue-2</div></div><div class="dp-c" data-section="title"><div class="dp-p">猫踏んじゃった</div></div><div class="dp-c" data-section="date occured"><div class="dp-date" data-year="2016" data-month="1" data-day="3"></div></div><div class="dp-c" data-section="author"><div class="dp-p">bob</div></div><div class="dp-c" data-section="description"><div class="dp-p">猫を踏んだと思っていた。</div></div><div class="dp-c" data-section="log"><div class="dp-p">実際には犬だった。<div class="dp-date" data-year="2016" data-month="1" data-day="4"></div></div></div></div><div class="dp-r" data-filename="C:\Users\f3014610\Documents\Devel\dustpan\examples\issue-1.txt"><div class="dp-c" data-section="filename"><div class="dp-p">issue-1</div></div><div class="dp-c" data-section="title"><div class="dp-p">マウスをクリックすると、お尻が痒くなる。</div></div><div class="dp-c" data-section="date occured"><div class="dp-date" data-year="2017" data-month="7" data-day="9"></div></div><div class="dp-c" data-section="author"><div class="dp-p">taro</div></div><div class="dp-c" data-section="description"><div class="dp-p">マウスをクリックする度に、お尻がだんだん痒くなる。右クリックすると右のお尻が痒くなり、左クリックすると左のお尻が痒くなる。</div><div class="dp-p">試しに左右のボタンを同時に押してみたけど、何も起きなかった。マウスのホイールをクリックしてみたけど、やっぱり何も起きなかった。</div></div><div class="dp-c" data-section="log"><div class="dp-p">右クリックしてみたら、お尻が痒くなることに気づいた。<div class="dp-date" data-year="2017" data-month="7" data-day="9"></div></div><div class="dp-p">左クリックしてみたら、左のお尻が痒くなることに気づいた。<div class="dp-date" data-year="2017" data-month="7" data-day="10"></div></div><div class="dp-p">繰り返しクリックし続けると、ものすごく痒くなることに気づいた。<div class="dp-date" data-year="2017" data-month="7" data-day="14"></div></div></div></div><div class="dp-r" data-filename="C:\Users\f3014610\Documents\Devel\dustpan\examples\issue-3.txt"><div class="dp-c" data-section="filename"><div class="dp-p">issue-3</div></div><div class="dp-c" data-section="title"><div class="dp-p">ワニに出会った。</div></div><div class="dp-c" data-section="date occured"><div class="dp-date" data-year="2018" data-month="10" data-day="11"></div></div><div class="dp-c" data-section="author"><div class="dp-p">john</div></div><div class="dp-c" data-section="description"><div class="dp-p">ある日、森の中、ワニさんに出会った。</div></div><div class="dp-c" data-section="log"><div class="dp-p">花は咲いてなかった。<div class="dp-date" data-year="2018" data-month="10" data-day="11"></div></div><div class="dp-p">また、会ってしまった。<div class="dp-date" data-year="2019" data-month="10" data-day="21"></div></div></div></div><div class="dp-r" data-filename="C:\Users\f3014610\Documents\Devel\dustpan\examples\issue-4.txt"><div class="dp-c" data-section="filename"><div class="dp-p">issue-4</div></div><div class="dp-c" data-section="title"><div class="dp-p">漏れている。</div></div><div class="dp-c" data-section="date occured"><div class="dp-date" data-year="2019" data-month="11" data-day="3"></div></div><div class="dp-c" data-section="author"><div class="dp-p">shon</div></div><div class="dp-c" data-section="description"><div class="dp-p">何かが漏れているが、何が漏れているのかわからない。</div></div><div class="dp-c" data-section="log"><div class="dp-p">メモリリークかと思って調べてみたが、違っていた。<div class="dp-date" data-year="2019" data-month="11" data-day="4"></div></div><div class="dp-p">メモリだと思ったらオナラが漏れていた。<div class="dp-date" data-year="2019" data-month="11" data-day="18"></div></div></div></div><div class="dp-r" data-filename="C:\Users\f3014610\Documents\Devel\dustpan\examples\issue-5.txt"><div class="dp-c" data-section="filename"><div class="dp-p">issue-5</div></div><div class="dp-c" data-section="title"><div class="dp-p">日付のパースが失敗する。</div></div><div class="dp-c" data-section="date occured"><div class="dp-date" data-year="2019" data-month="12" data-day="1"></div></div><div class="dp-c" data-section="author"><div class="dp-p">yoshida</div></div><div class="dp-c" data-section="description"><div class="dp-p">日付を文字列で受け取って、年月日を整数で取り出そうとすると、来年の日付けになってしまう。</div></div><div class="dp-c" data-section="log"><div class="dp-p">来年だったり再来年だったりいろいろしている。<div class="dp-date" data-year="2019" data-month="12" data-day="4"></div></div><div class="dp-p">いろいろやってみたけどまだダメだ。<div class="dp-date" data-year="2019" data-month="12" data-day="5"></div></div></div></div></div></div>
+</body>
+</html>

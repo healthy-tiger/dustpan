@@ -4,6 +4,7 @@
 		"dst":"issue-list.html",
 		"title":"課題リスト",
 		"display": [
+			"filename",
 			"title",
 			"date occured",
 			"author",
@@ -16,6 +17,7 @@
 		{ "name": "author" }
 	],
 	"columns": [
+		{ "name":"filename", "type":"filename"},
 		{ "name":"title", "type":"text" },
 		{ "name":"date occured", "type":"date" },
 		{ "name":"author", "type":"text" },
