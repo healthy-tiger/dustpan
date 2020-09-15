@@ -18,4 +18,4 @@ dpsh/dpsh
 # testdata
 dpsh/out.csv
 
-example/issue-list.html
+examples/issue-list.html
