@@ -122,6 +122,11 @@ func (p *Paragraph) String() string {
 	return string(bytes.Join(p.Value, []byte("\\n")))
 }
 
+func NewTextParagraph(t string) *Paragraph {
+	ps := append(make([][]byte, 0), []byte(t))
+	return &Paragraph{Linenum: -1, Value: ps}
+}
+
 func (s *Section) String() string {
 	buf := make([]string, 0, len(s.Value))
 	for _, p := range s.Value {
@@ -137,6 +142,10 @@ func (d *Document) String() string {
 		buf = append(buf, "\""+n+"\":"+v.String())
 	}
 	return strings.Join(buf, ",")
+}
+
+func NewTextSection(t string) *Section {
+	return &Section{Linenum: -1, Value: append(make([]*Paragraph, 0), NewTextParagraph(t))}
 }
 
 func (s *Section) PeekString() string {

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/healthy-tiger/dustpan/dptxt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -14,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/healthy-tiger/dustpan/dptxt"
 )
 
 var sepEmpty = []byte("")
@@ -67,6 +68,7 @@ const (
 	ColumnTypeDate     = "date"
 	ColumnTypeDeadline = "deadline"
 	ColumnTypeLog      = "log"
+	ColumnTypeFilename = "filename" // 拡張し無しのファイル名
 )
 
 type ColumnConfig struct {
@@ -110,7 +112,7 @@ func validateColumnConfig(cc *ColumnConfig) error {
 		return ErrorNoColumnType
 	}
 	switch strings.ToLower(cc.Type) {
-	case ColumnTypeText, ColumnTypeNumber, ColumnTypeDate, ColumnTypeDeadline, ColumnTypeLog:
+	case ColumnTypeText, ColumnTypeNumber, ColumnTypeDate, ColumnTypeDeadline, ColumnTypeLog, ColumnTypeFilename:
 		return nil
 	default:
 		return ErrorUnknownColumnType
@@ -226,7 +228,7 @@ func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
 			as := a.Sections[c.Name]
 			bs := b.Sections[c.Name]
 			cd := cdefs[si]
-			if cd.Type == ColumnTypeText || cd.Type == ColumnTypeLog {
+			if cd.Type == ColumnTypeText || cd.Type == ColumnTypeLog || cd.Type == ColumnTypeFilename {
 				// 対応するセクションがなければ空文字列として扱う。
 				av := ""
 				bv := ""
@@ -271,6 +273,11 @@ func preprocessDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
 	for _, cd := range config.ColumnDefs {
 		c := doc.Sections[cd.Name]
 		if c == nil {
+			if cd.Type == ColumnTypeFilename {
+				base := filepath.Base(doc.Filename)
+				ext := filepath.Ext(doc.Filename)
+				doc.Sections[cd.Name] = dptxt.NewTextSection(strings.TrimSuffix(base, ext))
+			}
 			continue
 		}
 		switch cd.Type {
