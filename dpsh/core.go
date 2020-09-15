@@ -72,8 +72,9 @@ const (
 )
 
 type ColumnConfig struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Width string `json:"width"`
 }
 
 type CsvConfig struct {

@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/healthy-tiger/dustpan/dptxt"
 	"html"
 	"io/ioutil"
 	"log"
 	"time"
+
+	"github.com/healthy-tiger/dustpan/dptxt"
 )
 
 var br []byte = []byte("<br>")
@@ -50,213 +51,7 @@ var contentOpen1 string = `<!DOCTYPE html>
 <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
 <title>%s</title>`
 
-var defaultstyle []byte = []byte(`
-<style>
-body { background-color: #fff; }
-html {
-    padding: 0px;
-    margin: 0px;
-}
-
-body {
-    font-family: "Meiryo UI";
-    font-size: 9pt;
-    padding: 0px;
-    margin: 0px;
-}
-
-.dp-heading {
-    font-size: 2em;
-    margin: 10pt;
-    display: flex;
-}
-
-.dp-heading>.dp-title {
-    flex: initial;
-}
-
-.dp-heading>.dp-update {
-    font-size: 0.5em;
-    flex: auto;
-    text-align: right;
-}
-
-.dp-heading>.dp-title:after {
-    content: attr(data-title);
-}
-
-.dp-heading>.dp-update:after {
-    content: attr(data-date) " "attr(date-time) " 更新";
-}
-
-.dp-t {
-    width: 100%;
-}
-
-.dp-t .dp-h {
-    width: 100%;
-    font-weight: bold;
-}
-
-.dp-t .dp-b {
-    width: 100%;
-}
-
-.dp-t .dp-r {
-    width: 100%;
-    display: flex;
-    justify-content: stretch;
-    flex-wrap: nowrap;
-    flex-direction: row;
-    align-items: stretch;
-}
-
-.dp-t .dp-r>.dp-c {
-    flex-grow: 1;
-    flex-shrink: 0;
-    width: 0px;
-    flex-basis: 0px;
-    padding: 3pt;
-}
-
-.dp-t>.dp-b>.dp-r:nth-child(n+2) {
-    border-style: solid;
-    border-color: #999;
-    border-width: 1px 0px 0px 0px;
-}
-
-.dp-t .dp-r>.dp-c:nth-child(n+2) {
-    border-style: solid;
-    border-color: #999;
-    border-width: 0px 0px 0px 1px;
-}
-
-.dp-t .dp-h .dp-r {
-    white-space: nowrap;
-    vertical-align: bottom;
-    text-align: center;
-    border-bottom-width: 3px;
-    border-bottom-style: double;
-    border-bottom-color: #999;
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c {
-    vertical-align: top;
-}
-
-/* 空白のままになっているセルが強調されるように */
-.dp-t>.dp-b>.dp-r>.dp-c:empty {
-    background-color: #eeeeee;
-    text-align: center;
-}
-
-.dp-t .dp-b .dp-r .dp-c:empty::before {
-    content: "?";
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c .dp-err {
-    display: inline-block;
-    background-color: red;
-    color: white;
-    font-weight: bold;
-    font-size: 0.8em;
-    padding: 0.1em;
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c .dp-err:before {
-    content: "エラー：";
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c .dp-err:after {
-    content: attr(data-msg);
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c>.dp-date {
-    text-align: center;
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c>.dp-date.dp-expired {
-    color: red;
-    font-weight: bold;
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c>.dp-date:after {
-    content: attr(data-year) "/"attr(data-month) "/"attr(data-day);
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c>.dp-date.dp-expired:after {
-    content: attr(data-year) "/"attr(data-month) "/"attr(data-day);
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c .dp-p {
-    padding-top: 1.5em;
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c .dp-p:first-child {
-    padding-top: 0em;
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c .dp-p:last-child {
-    padding-bottom: 0em;
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c .dp-p>.dp-date {
-    display: inline;
-    margin-left: 0.5em;
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c .dp-p>.dp-date:after {
-    content: "("attr(data-year) "/"attr(data-month) "/"attr(data-day) ")";
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c .dp-p>.dp-date[data-suffix]:after {
-    content: "("attr(data-year) "/"attr(data-month) "/"attr(data-day) " "attr(data-suffix) ")";
-}
-
-@media print {
-    html {
-        margin: 0px;
-        padding: 0px;
-    }
-
-    body {
-        margin: 0px;
-        padding: 0px;
-    }
-
-    .dp-heading {
-        display: none;
-    }
-
-    .dp-t {
-        font-size: 7pt;
-        border-width: 1px;
-        border-color: #999;
-        border-style: solid;
-        box-sizing: border-box;
-    }
-
-    .dp-t .dp-h {
-        break-inside: avoid;
-    }
-
-    .dp-t .dp-b .dp-r {
-        break-inside: auto;
-    }
-
-    .dp-t .dp-b .dp-r .dp-c .dp-p {
-        break-inside: avoid;
-    }
-
-    .dp-t .dp-b .dp-r .dp-c:empty {
-        background-color: transparent;
-    }
-
-    .dp-t .dp-b .dp-r .dp-c .dp-err {
-        display: none;
-    }
-}
-</style>`)
+var defaultstyle []byte = []byte(`body{background-color:#fff}body,html{padding:0;margin:0}body{font-family:Meiryo UI;font-size:9pt}.dp-heading{font-size:2em;margin:10pt;display:flex}.dp-heading>.dp-title{flex:initial}.dp-heading>.dp-update{font-size:.5em;flex:auto;text-align:right}.dp-heading>.dp-title:after{content:attr(data-title)}.dp-heading>.dp-update:after{content:attr(data-date) " "attr(date-time) " 更新"}.dp-t .dp-h{width:100%;font-weight:700}.dp-t,.dp-t .dp-b{width:100%}.dp-t .dp-r{width:100%;display:flex;justify-content:stretch;flex-wrap:nowrap;flex-direction:row;align-items:stretch}.dp-t .dp-r>.dp-c{flex-grow:1;flex-shrink:0;width:0;flex-basis:0;padding:3pt}.dp-t>.dp-b>.dp-r:nth-child(n+2){border-style:solid;border-color:#999;border-width:1px 0 0}.dp-t .dp-r>.dp-c:nth-child(n+2){border-style:solid;border-color:#999;border-width:0 0 0 1px}.dp-t .dp-h .dp-r{white-space:nowrap;vertical-align:bottom;text-align:center;border-bottom-width:3px;border-bottom-style:double;border-bottom-color:#999}.dp-t>.dp-b>.dp-r>.dp-c{vertical-align:top}.dp-t>.dp-b>.dp-r>.dp-c:empty{background-color:#eee;text-align:center}.dp-t .dp-b .dp-r .dp-c:empty:before{content:"?"}.dp-t>.dp-b>.dp-r>.dp-c .dp-err{display:inline-block;background-color:red;color:#fff;font-weight:700;font-size:.8em;padding:.1em}.dp-t>.dp-b>.dp-r>.dp-c .dp-err:before{content:"エラー："}.dp-t>.dp-b>.dp-r>.dp-c .dp-err:after{content:attr(data-msg)}.dp-t>.dp-b>.dp-r>.dp-c>.dp-date{text-align:center}.dp-t>.dp-b>.dp-r>.dp-c>.dp-date.dp-expired{color:red;font-weight:700}.dp-t>.dp-b>.dp-r>.dp-c>.dp-date.dp-expired:after,.dp-t>.dp-b>.dp-r>.dp-c>.dp-date:after{content:attr(data-year) "/"attr(data-month) "/"attr(data-day)}.dp-t>.dp-b>.dp-r>.dp-c .dp-p{padding-top:1.5em}.dp-t>.dp-b>.dp-r>.dp-c .dp-p:first-child{padding-top:0}.dp-t>.dp-b>.dp-r>.dp-c .dp-p:last-child{padding-bottom:0}.dp-t>.dp-b>.dp-r>.dp-c .dp-p>.dp-date{display:inline;margin-left:.5em}.dp-t>.dp-b>.dp-r>.dp-c .dp-p>.dp-date:after{content:"("attr(data-year) "/"attr(data-month) "/"attr(data-day) ")"}.dp-t>.dp-b>.dp-r>.dp-c .dp-p>.dp-date[data-suffix]:after{content:"("attr(data-year) "/"attr(data-month) "/"attr(data-day) " "attr(data-suffix) ")"}@media print{body,html{margin:0;padding:0}.dp-heading{display:none}.dp-t{font-size:7pt;border:1px solid #999;box-sizing:border-box}.dp-t .dp-h{break-inside:avoid}.dp-t .dp-b .dp-r{break-inside:auto}.dp-t .dp-b .dp-r .dp-c .dp-p{break-inside:avoid}.dp-t .dp-b .dp-r .dp-c:empty{background-color:transparent}.dp-t .dp-b .dp-r .dp-c .dp-err{display:none}}`)
 
 var contentOpen2 string = `
 </head>
@@ -436,7 +231,15 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 			log.Println(cssname, err)
 		}
 	} else { // CSSの指定がなければデフォルトのCSSを入れる。
-		_, err = w.Write(defaultstyle)
+		if err == nil {
+			_, err = w.Write(styleOpen)
+		}
+		if err == nil {
+			_, err = w.Write(defaultstyle)
+		}
+		if err == nil {
+			_, err = w.Write(styleClose)
+		}
 		if err != nil {
 			log.Println(err)
 		}
