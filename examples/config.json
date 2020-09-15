@@ -17,10 +17,10 @@
 		{ "name": "author" }
 	],
 	"columns": [
-		{ "name":"filename", "type":"filename"},
-		{ "name":"title", "type":"text" },
-		{ "name":"date occured", "type":"date" },
-		{ "name":"author", "type":"text" },
+		{ "name":"filename", "type":"filename", "width":"5em"},
+		{ "name":"title", "type":"text", "width":"15em" },
+		{ "name":"date occured", "type":"date", "width":"10em" },
+		{ "name":"author", "type":"text","width":"12em" },
 		{ "name":"description", "type":"text" },
 		{ "name":"log", "type":"log" }
    	]

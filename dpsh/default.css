@@ -57,10 +57,7 @@ body {
     align-items: stretch;
 }
 .dp-t .dp-r>.dp-c {
-	flex-grow: 1;
     flex-shrink: 0;
-    width: 0px;
-    flex-basis: 0px;
     padding: 3pt;
 }
 
