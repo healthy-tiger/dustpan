@@ -122,14 +122,6 @@ body {
     font-weight: bold;
 }
 
-.dp-t>.dp-b>.dp-r>.dp-c>.dp-date:after {
-    content: attr(data-year) "/"attr(data-month) "/"attr(data-day);
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c>.dp-date.dp-expired:after {
-    content: attr(data-year) "/"attr(data-month) "/"attr(data-day);
-}
-
 .dp-t>.dp-b>.dp-r>.dp-c .dp-p {
     padding-top: 1.5em;
 }
@@ -144,15 +136,6 @@ body {
 
 .dp-t>.dp-b>.dp-r>.dp-c .dp-p>.dp-date {
     display: inline;
-    margin-left: 0.5em;
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c .dp-p>.dp-date:after {
-    content: "("attr(data-year) "/"attr(data-month) "/"attr(data-day) ")";
-}
-
-.dp-t>.dp-b>.dp-r>.dp-c .dp-p>.dp-date[data-suffix]:after {
-    content: "("attr(data-year) "/"attr(data-month) "/"attr(data-day) " "attr(data-suffix) ")";
 }
 
 @media print {
