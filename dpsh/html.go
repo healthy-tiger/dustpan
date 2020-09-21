@@ -183,7 +183,7 @@ func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Writ
 	if err != nil {
 		return err
 	}
-	for _, cname := range config.Html.DisplayColumns {
+	for _, cname := range config.HTML.DisplayColumns {
 		err = htmlWriteSection(doc.Sections[cname], cname, w)
 		if err != nil {
 			return err
@@ -196,11 +196,12 @@ func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Writ
 	return nil
 }
 
-func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
-	if len(config.Html.DstPath) == 0 {
+// WriteHTML 設定ファイルに従ってHTML出力を実行する。
+func WriteHTML(basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
+	if len(config.HTML.DstPath) == 0 {
 		return nil
 	}
-	dstname := normalizePath(basepath, config.Html.DstPath)
+	dstname := normalizePath(basepath, config.HTML.DstPath)
 
 	// 一時ファイルの生成
 	tmpfile, err := openTempFile("html")
@@ -214,7 +215,7 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 
 	w := bufio.NewWriter(tmpfile)
 
-	title := config.Html.Title
+	title := config.HTML.Title
 	if len(title) == 0 {
 		title = defaultTitle
 	}
@@ -225,8 +226,8 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 	}
 
 	// CSSの指定があれば読み込んで埋め込む。読み込みエラーがあっても中断はしない。
-	if len(config.Html.CssPath) > 0 {
-		cssname := normalizePath(basepath, config.Html.CssPath)
+	if len(config.HTML.CSSPath) > 0 {
+		cssname := normalizePath(basepath, config.HTML.CSSPath)
 		cssbytes, err := ioutil.ReadFile(cssname)
 		if err == nil {
 			_, err = w.Write(styleOpen)
@@ -252,7 +253,7 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 			cd := &(config.ColumnDefs[i])
 			dd[cd.Name] = cd
 		}
-		for _, dn := range config.Html.DisplayColumns {
+		for _, dn := range config.HTML.DisplayColumns {
 			if cd, ok := dd[dn]; ok && cd.Width != "" {
 				w.Write([]byte(fmt.Sprintf(defaultColumnWithWidth, cd.Name, cd.Width, cd.Width)))
 			} else {
@@ -269,8 +270,8 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 	}
 
 	// JavaScriptの指定があれば読み込んで埋め込む。読み込みエラーがあっても中断はしない。
-	if len(config.Html.JsPath) > 0 {
-		jsname := normalizePath(basepath, config.Html.JsPath)
+	if len(config.HTML.JsPath) > 0 {
+		jsname := normalizePath(basepath, config.HTML.JsPath)
 		jsbytes, err := ioutil.ReadFile(jsname)
 		if err == nil {
 			_, err = w.Write(scriptOpen)
@@ -303,7 +304,7 @@ func WriteHtml(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 	if err != nil {
 		return err
 	}
-	for _, cname := range config.Html.DisplayColumns {
+	for _, cname := range config.HTML.DisplayColumns {
 		tdOpen := []byte(fmt.Sprintf(tdOpenFmt, cname))
 
 		_, err = w.Write(tdOpen)

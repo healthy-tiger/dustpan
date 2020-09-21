@@ -2,8 +2,9 @@ package dpsh
 
 import (
 	"bufio"
-	"github.com/healthy-tiger/dustpan/dptxt"
 	"strings"
+
+	"github.com/healthy-tiger/dustpan/dptxt"
 )
 
 func csvWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
@@ -66,6 +67,7 @@ func csvWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Write
 	return nil
 }
 
+// WriteCsv 設定ファイルの内容に従ってCSV出力を実行する。
 func WriteCsv(basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
 	if len(config.Csv.DstPath) == 0 {
 		return nil

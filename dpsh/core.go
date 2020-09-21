@@ -23,6 +23,7 @@ var sepNewline = []byte("\n")
 var sep2Newline = []byte("\n\n")
 var sepDq = []byte("\"")
 
+// エラー
 var (
 	ErrorInvalidDate       = errors.New("無効な日付")
 	ErrorNoColumnName      = errors.New("カラム名が未指定")
@@ -32,6 +33,7 @@ var (
 	ErrorMultipleValue     = errors.New("複数の値")
 )
 
+// ValueError 構文エラーを格納する構造体
 type ValueError struct {
 	Filename string
 	Linenum  int
@@ -46,6 +48,7 @@ func (ve *ValueError) Unwrap() error {
 	return ve.err
 }
 
+// NewValueError 新しく構文エラーを生成する。
 func NewValueError(filename string, linenum int, err error) *ValueError {
 	ve := new(ValueError)
 	ve.Filename = filename
@@ -54,14 +57,16 @@ func NewValueError(filename string, linenum int, err error) *ValueError {
 	return ve
 }
 
+// DustpanConfig 読み込んだ設定ファイルを格納する構造体
 type DustpanConfig struct {
 	SrcPath    []string       `json:"src"`
-	Html       HtmlConfig     `json:"html"`
+	HTML       HTMLConfig     `json:"html"`
 	Csv        CsvConfig      `json:"csv"`
 	ColumnDefs []ColumnConfig `json:"columns"`
 	SortOrder  []SortConfig   `json:"order"`
 }
 
+// カラムの種別の定義
 const (
 	ColumnTypeText     = "text"
 	ColumnTypeNumber   = "number" // 符号付き整数
@@ -71,25 +76,29 @@ const (
 	ColumnTypeFilename = "filename" // 拡張し無しのファイル名
 )
 
+// ColumnConfig 設定ファイルから読み込んだカラムの定義を格納する構造体
 type ColumnConfig struct {
 	Name  string `json:"name"`
 	Type  string `json:"type"`
 	Width string `json:"width"`
 }
 
+// CsvConfig 設定ファイルから読み込んだCSV出力の設定を格納する構造体
 type CsvConfig struct {
 	DstPath    string `json:"dst"`
 	AddHeading bool   `json:"heading"`
 }
 
-type HtmlConfig struct {
+// HTMLConfig 設定ファイルから読み込んだHTML出力の設定を格納する構造体
+type HTMLConfig struct {
 	DstPath        string   `json:"dst"`
-	CssPath        string   `json:"css"`
+	CSSPath        string   `json:"css"`
 	JsPath         string   `json:"js"`
 	Title          string   `json:"title"`
 	DisplayColumns []string `json:"display"`
 }
 
+// SortConfig 設定ファイルから読み込んだ並べ替えの設定を格納する構造体
 type SortConfig struct {
 	Name       string `json:"name"`
 	Descending bool   `json:"descending"` // trueなら降順
@@ -127,8 +136,9 @@ func validateSortConfig(sc *SortConfig) error {
 	return nil
 }
 
+// GetColumnDef 設定からカラムの定義を取得する
 func (config *DustpanConfig) GetColumnDef(name string) *ColumnConfig {
-	for i, _ := range config.ColumnDefs {
+	for i := range config.ColumnDefs {
 		if config.ColumnDefs[i].Name == name {
 			return &config.ColumnDefs[i]
 		}
@@ -136,6 +146,7 @@ func (config *DustpanConfig) GetColumnDef(name string) *ColumnConfig {
 	return nil
 }
 
+// LoadConfig filenameで指定されるパスから設定ファイルを読み込んで、configに格納する。
 func LoadConfig(filename string, config *DustpanConfig) error {
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -173,6 +184,7 @@ func normalizePath(basepath string, path string) string {
 	return filepath.Clean(path)
 }
 
+// LoadAllFiles 対象となるすべてのファイルを読み込む
 func LoadAllFiles(basepath string, paths []string) []*dptxt.Document {
 	docs := make([]*dptxt.Document, 0)
 	for _, p := range paths {
@@ -195,6 +207,7 @@ func LoadAllFiles(basepath string, paths []string) []*dptxt.Document {
 	return docs
 }
 
+// LoadFile filenameで指定されるファイルを読み込み、docに格納する。
 func LoadFile(filename string, doc *dptxt.Document) error {
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -367,6 +380,7 @@ func preprocessAllDocs(config *DustpanConfig, docs []*dptxt.Document) {
 	}
 }
 
+// DoMain configpathで指定される設定ファイルの内容に従って処理を実行する。
 func DoMain(configpath string) {
 	configname, err := filepath.Abs(configpath)
 	if err != nil {
@@ -390,16 +404,16 @@ func DoMain(configpath string) {
 	if err != nil {
 		log.Println("csv", err)
 	}
-	err = WriteHtml(basepath, &config, docs)
+	err = WriteHTML(basepath, &config, docs)
 	if err != nil {
 		log.Println("html", err)
 	}
 }
 
-const tempfile_template = "_dustpan_%s.*.tmp"
+const tempfileTemplate = "_dustpan_%s.*.tmp"
 
 func openTempFile(filetype string) (*os.File, error) {
-	return ioutil.TempFile("", fmt.Sprintf(tempfile_template, filetype))
+	return ioutil.TempFile("", fmt.Sprintf(tempfileTemplate, filetype))
 }
 
 func closeTempFile(dstname string, tmpfile *os.File, lasterr error) {
