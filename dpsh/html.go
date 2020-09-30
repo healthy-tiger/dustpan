@@ -7,6 +7,7 @@ import (
 	"html"
 	"io/ioutil"
 	"log"
+	"os"
 	"time"
 
 	"github.com/healthy-tiger/dustpan/dptxt"
@@ -196,31 +197,17 @@ func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Writ
 	return nil
 }
 
-// WriteHTML 設定ファイルに従ってHTML出力を実行する。
-func WriteHTML(basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
-	if len(config.HTML.DstPath) == 0 {
-		return nil
+func writeTo(w *bufio.Writer, basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
+	if len(config.HTML.Header) > 0 {
+		w.WriteString(config.HTML.Header)
 	}
-	dstname := normalizePath(basepath, config.HTML.DstPath)
-
-	// 一時ファイルの生成
-	tmpfile, err := openTempFile("html")
-	if err != nil {
-		return err
-	}
-	// ファイルの後始末
-	defer func() {
-		closeTempFile(dstname, tmpfile, err)
-	}()
-
-	w := bufio.NewWriter(tmpfile)
 
 	title := config.HTML.Title
 	if len(title) == 0 {
 		title = defaultTitle
 	}
 
-	_, err = w.WriteString(fmt.Sprintf(contentOpen1, title))
+	_, err := w.WriteString(fmt.Sprintf(contentOpen1, title))
 	if err != nil {
 		return err
 	}
@@ -351,4 +338,30 @@ func WriteHTML(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 
 	w.Flush()
 	return nil
+}
+
+// WriteHTML 設定ファイルに従ってHTML出力を実行する。
+func WriteHTML(basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
+	var w *bufio.Writer
+
+	if len(config.HTML.DstPath) == 0 {
+		// 出力先の指定がない場合は標準出力に出力する。
+		w = bufio.NewWriter(os.Stdout)
+	} else {
+		dstname := normalizePath(basepath, config.HTML.DstPath)
+
+		// 一時ファイルの生成
+		tmpfile, err := openTempFile("html")
+		if err != nil {
+			return err
+		}
+		// ファイルの後始末
+		defer func() {
+			closeTempFile(dstname, tmpfile, err)
+		}()
+
+		w = bufio.NewWriter(tmpfile)
+	}
+
+	return writeTo(w, basepath, config, docs)
 }

@@ -92,6 +92,7 @@ type CsvConfig struct {
 // HTMLConfig 設定ファイルから読み込んだHTML出力の設定を格納する構造体
 type HTMLConfig struct {
 	DstPath        string   `json:"dst"`
+	Header         string   `json:"header"`
 	CSSPath        string   `json:"css"`
 	JsPath         string   `json:"js"`
 	Title          string   `json:"title"`
