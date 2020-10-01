@@ -409,6 +409,10 @@ func DoMain(configpath string) {
 	if err != nil {
 		log.Println("html", err)
 	}
+	err = WriteJSON(basepath, &config, docs)
+	if err != nil {
+		log.Println("json", err)
+	}
 }
 
 const tempfileTemplate = "_dustpan_%s.*.tmp"
