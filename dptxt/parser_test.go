@@ -12,7 +12,7 @@ func compareParagraph(t *testing.T, a, b *Paragraph) {
 		for i := 0; i < len(a.Value); i++ {
 			x := a.Value[i]
 			y := b.Value[i]
-			if !bytes.Equal(x, y) {
+			if x != y {
 				t.Error("Paragraph.Value.[]byte", x, y)
 			}
 		}
@@ -73,77 +73,77 @@ func TestParseRaw(t *testing.T) {
 	expected := Document{
 		"test1",
 		map[string]*Section{
-			"test": &Section{
+			"test": {
 				Value: []*Paragraph{
-					&Paragraph{
-						Value: [][]byte{
-							[]byte("hello"),
+					{
+						Value: []string{
+							"hello",
 						},
 					},
 				},
-				peekedValue:"hello",
+				peekedValue: "hello",
 			},
-			"date": &Section{
-				Value:[]*Paragraph{
-					&Paragraph{
-						Value: [][]byte{
-							[]byte("2019/1/2"),
-						},
-					},
-				},
-				peekedValue:"2019/1/2",
-			},
-			"title": &Section{
+			"date": {
 				Value: []*Paragraph{
-					&Paragraph{
-						Value: [][]byte{
-							[]byte("dptxt parse"),
+					{
+						Value: []string{
+							"2019/1/2",
 						},
 					},
 				},
-				peekedValue:"dptxt parse",
+				peekedValue: "2019/1/2",
 			},
-			"description": &Section{
-				Value:[]*Paragraph{
-					&Paragraph{
-						Value:[][]byte{
-							[]byte("ほんじつは、"),
-							[]byte("おひがらもよく、"),
-							[]byte("云々。。。"),
-						},
-					},
-					&Paragraph{
-						Value:[][]byte{
-							[]byte("あれこれ"),
-							[]byte("これそれ"),
+			"title": {
+				Value: []*Paragraph{
+					{
+						Value: []string{
+							"dptxt parse",
 						},
 					},
 				},
-				peekedValue:"ほんじつは、",
+				peekedValue: "dptxt parse",
 			},
-			"作者": &Section{
-				Value:[]*Paragraph{
-					&Paragraph{
-						Value:[][]byte{
-							[]byte("ボブ"),
+			"description": {
+				Value: []*Paragraph{
+					{
+						Value: []string{
+							"ほんじつは、",
+							"おひがらもよく、",
+							"云々。。。",
+						},
+					},
+					{
+						Value: []string{
+							"あれこれ",
+							"これそれ",
 						},
 					},
 				},
-				peekedValue:"ボブ",
+				peekedValue: "ほんじつは、",
 			},
-			"compile option": &Section{
-				Value:[]*Paragraph{
-					&Paragraph{
-						Value:[][]byte{
-							[]byte("-O2"),
+			"作者": {
+				Value: []*Paragraph{
+					{
+						Value: []string{
+							"ボブ",
 						},
 					},
 				},
-				peekedValue:"-O2",
+				peekedValue: "ボブ",
 			},
-			"author": &Section{
-				Value:[]*Paragraph{},
-				peekedValue:"",
+			"compile option": {
+				Value: []*Paragraph{
+					{
+						Value: []string{
+							"-O2",
+						},
+					},
+				},
+				peekedValue: "-O2",
+			},
+			"author": {
+				Value:       []*Paragraph{},
+				peekedValue: "",
 			},
 		},
 		nil,
@@ -160,11 +160,11 @@ func TestParseRaw(t *testing.T) {
 
 // 月と日が二桁
 func TestParseDate1(t *testing.T) {
-	dates := [][]byte{
-		[]byte("2019/11/13"),
-		[]byte("2019-11-13"),
-		[]byte("2019.11.13"),
-		[]byte("2019年11月13日"),
+	dates := []string{
+		"2019/11/13",
+		"2019-11-13",
+		"2019.11.13",
+		"2019年11月13日",
 	}
 
 	for _, d := range dates {
@@ -173,18 +173,18 @@ func TestParseDate1(t *testing.T) {
 			t.Error(string(d), year, month, day, string(pre), err)
 		}
 		if year != 2019 || month != 11 || day != 13 {
-			t.Error(string(d), year, month, day, string(pre),  err)
+			t.Error(string(d), year, month, day, string(pre), err)
 		}
 	}
 }
 
 // 月と日が一桁
 func TestParseDate2(t *testing.T) {
-	dates := [][]byte{
-		[]byte("2003/1/3"),
-		[]byte("2003-1-3"),
-		[]byte("2003.1.3"),
-		[]byte("2003年1月3日"),
+	dates := []string{
+		"2003/1/3",
+		"2003-1-3",
+		"2003.1.3",
+		"2003年1月3日",
 	}
 
 	for _, d := range dates {
@@ -200,11 +200,11 @@ func TestParseDate2(t *testing.T) {
 
 // 月と日がゼロ埋めありの二桁
 func TestParseDate3(t *testing.T) {
-	dates := [][]byte{
-		[]byte("2003/01/03"),
-		[]byte("2003-01-03"),
-		[]byte("2003.01.03"),
-		[]byte("2003年01月03日"),
+	dates := []string{
+		"2003/01/03",
+		"2003-01-03",
+		"2003.01.03",
+		"2003年01月03日",
 	}
 
 	for _, d := range dates {
@@ -220,19 +220,19 @@ func TestParseDate3(t *testing.T) {
 
 // 区切り文字に全角と半角が混在
 func TestParseDate4(t *testing.T) {
-	dates := [][]byte{
-		[]byte("2003／01/03"),
-		[]byte("2003―01-03"),
-		[]byte("2003．01.03"),
-		[]byte("2003／1/3"),
-		[]byte("2003―1-3"),
-		[]byte("2003．1.3"),
-		[]byte("2003/01／03"),
-		[]byte("2003-01―03"),
-		[]byte("2003.01．03"),
-		[]byte("2003/1／3"),
-		[]byte("2003-1―3"),
-		[]byte("2003.1．3"),
+	dates := []string{
+		"2003／01/03",
+		"2003―01-03",
+		"2003．01.03",
+		"2003／1/3",
+		"2003―1-3",
+		"2003．1.3",
+		"2003/01／03",
+		"2003-01―03",
+		"2003.01．03",
+		"2003/1／3",
+		"2003-1―3",
+		"2003.1．3",
 	}
 
 	for _, d := range dates {
@@ -248,29 +248,29 @@ func TestParseDate4(t *testing.T) {
 
 // 前後に空白、空白のあとに単語
 func TestParseDate5(t *testing.T) {
-	dates := [][]byte{
-		[]byte("  2003.1.3"),
-		[]byte("2003.1.3  "),
-		[]byte("  2003.1.3  "),
-		[]byte("  2003年1月3日"),
-		[]byte("2003年1月3日  "),
-		[]byte("  2003年01月03日  "),
-		[]byte("2003   年01月03日"),
-		[]byte("2003   年1月3日"),
-		[]byte("2003年   01月03日"),
-		[]byte("2003年01  月03日"),
-		[]byte("2003年   1月03日"),
-		[]byte("2003年1   月03日"),
-		[]byte("2003年   01  月03日"),
-		[]byte("2003年   1   月03日"),
-		[]byte("2003年01月   03日"),
-		[]byte("2003年01月03   日"),
-		[]byte("2003年01月   3日"),
-		[]byte("2003年01月3   日"),
-		[]byte("2003年01月   03   日"),
-		[]byte("2003年01月   3   日"),
-		[]byte("  2003.1.3 b "),
-		[]byte("2003年01月   3   日 太郎"),
+	dates := []string{
+		"  2003.1.3",
+		"2003.1.3  ",
+		"  2003.1.3  ",
+		"  2003年1月3日",
+		"2003年1月3日  ",
+		"  2003年01月03日  ",
+		"2003   年01月03日",
+		"2003   年1月3日",
+		"2003年   01月03日",
+		"2003年01  月03日",
+		"2003年   1月03日",
+		"2003年1   月03日",
+		"2003年   01  月03日",
+		"2003年   1   月03日",
+		"2003年01月   03日",
+		"2003年01月03   日",
+		"2003年01月   3日",
+		"2003年01月3   日",
+		"2003年01月   03   日",
+		"2003年01月   3   日",
+		"  2003.1.3 b ",
+		"2003年01月   3   日 太郎",
 	}
 
 	for _, d := range dates {
@@ -286,13 +286,13 @@ func TestParseDate5(t *testing.T) {
 
 // 数字に全角と半角が混在
 func TestParseDate6(t *testing.T) {
-	dates := [][]byte{
-		[]byte("  2０0３.1.3"),
-		[]byte("2003.１.3  "),
-		[]byte("  2003.1.３  "),
-		[]byte("  ２003年1月3日"),
-		[]byte("200３年1月3日  "),
-		[]byte("  2003年０1月0３日  "),
+	dates := []string{
+		"  2０0３.1.3",
+		"2003.１.3  ",
+		"  2003.1.３  ",
+		"  ２003年1月3日",
+		"200３年1月3日  ",
+		"  2003年０1月0３日  ",
 	}
 
 	for _, d := range dates {
@@ -307,24 +307,24 @@ func TestParseDate6(t *testing.T) {
 }
 
 func TestParseDateErr(t *testing.T) {
-	dates := [][]byte{
-		[]byte(".1.3"),
-		[]byte("2０３.1.3"),
-		[]byte("2０0３..3"),
-		[]byte("2０0３.1."),
-		[]byte("2０0３.2. "),
-		[]byte("2０0３4.1.3"),
-		[]byte("２003年1日3日"),
-		[]byte("2０0３.1-3"),
-		[]byte("2０0３/1.3"),
-		[]byte("2０0３-1.3"),
-		[]byte("a  2003.1.3  "),
-		[]byte("  2003.1.3b "),
-		[]byte("  2003年1月3日太郎  "),
-		[]byte("  2003 "),
-		[]byte("  2003.1 "),
-		[]byte("  2003.111.3 "),
-		[]byte("  003.1.3333 "),
+	dates := []string{
+		".1.3",
+		"2０３.1.3",
+		"2０0３..3",
+		"2０0３.1.",
+		"2０0３.2. ",
+		"2０0３4.1.3",
+		"２003年1日3日",
+		"2０0３.1-3",
+		"2０0３/1.3",
+		"2０0３-1.3",
+		"a  2003.1.3  ",
+		"  2003.1.3b ",
+		"  2003年1月3日太郎  ",
+		"  2003 ",
+		"  2003.1 ",
+		"  2003.111.3 ",
+		"  003.1.3333 ",
 	}
 
 	for _, d := range dates {
@@ -336,11 +336,11 @@ func TestParseDateErr(t *testing.T) {
 }
 
 func TestParseLogDate1(t *testing.T) {
-	dates := [][]byte{
-		[]byte("abc(2019/11/13)"),
-		[]byte("abc(2019-11-13)"),
-		[]byte("abc(2019.11.13)"),
-		[]byte("abc(2019年11月13日)"),
+	dates := []string{
+		"abc(2019/11/13)",
+		"abc(2019-11-13)",
+		"abc(2019.11.13)",
+		"abc(2019年11月13日)",
 	}
 	for _, d := range dates {
 		year, month, day, pre, post, err := ParseLogDate(d)
@@ -354,17 +354,17 @@ func TestParseLogDate1(t *testing.T) {
 }
 
 func TestParseLogDate2(t *testing.T) {
-	dates := [][]byte{
-		[]byte("hello ( 2003/01/03   ) "),
-		[]byte("hello （ 2003/01/03   ) "),
-		[]byte("hello（2003.01.03)"),
-		[]byte("hello(2003/1/3）"),
-		[]byte("hello ( 2003/01/03   ) "),
-		[]byte("hello（　　2003.01.03　)"),
-		[]byte("hello(2003/1/3）"),
-		[]byte("hello(2003/1/3 world）"),
-		[]byte("(2003/1/3)"),
-		[]byte("(2003/1/3 john)"),
+	dates := []string{
+		"hello ( 2003/01/03   ) ",
+		"hello （ 2003/01/03   ) ",
+		"hello（2003.01.03)",
+		"hello(2003/1/3）",
+		"hello ( 2003/01/03   ) ",
+		"hello（　　2003.01.03　)",
+		"hello(2003/1/3）",
+		"hello(2003/1/3 world）",
+		"(2003/1/3)",
+		"(2003/1/3 john)",
 	}
 
 	for _, d := range dates {
@@ -379,71 +379,71 @@ func TestParseLogDate2(t *testing.T) {
 }
 
 func TestParseLogDate3(t *testing.T) {
-	d := []byte("hello(2003/1/3 world）")
+	d := "hello(2003/1/3 world）"
 	year, month, day, pre, post, err := ParseLogDate(d)
 	if err != nil {
-		t.Error(string(d), year, month, day, string(pre), string(post), err)
+		t.Error(d, year, month, day, pre, post, err)
 	}
 	if year != 2003 || month != 1 || day != 3 {
-		t.Error(string(d), year, month, day, string(pre), string(post), err)
+		t.Error(d, year, month, day, pre, post, err)
 	}
-	if string(pre) != "hello" {
-		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	if pre != "hello" {
+		t.Error(d, year, month, day, pre, post, err)
 	}
-	if string(post) != "world" {
-		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	if post != "world" {
+		t.Error(d, year, month, day, pre, post, err)
 	}
 
-	d = []byte("(2003/1/3 john)")
+	d = "(2003/1/3 john)"
 	year, month, day, pre, post, err = ParseLogDate(d)
 	if err != nil {
-		t.Error(string(d), year, month, day, string(pre), string(post), err)
+		t.Error(d, year, month, day, pre, post, err)
 	}
 	if year != 2003 || month != 1 || day != 3 {
-		t.Error(string(d), year, month, day, string(pre), string(post), err)
+		t.Error(d, year, month, day, pre, post, err)
 	}
-	if string(pre) != "" {
-		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	if pre != "" {
+		t.Error(d, year, month, day, pre, post, err)
 	}
-	if string(post) != "john" {
-		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	if post != "john" {
+		t.Error(d, year, month, day, pre, post, err)
 	}
-	
-	d = []byte("hello(2003年1月3日 world)")
+
+	d = "hello(2003年1月3日 world)"
 	year, month, day, pre, post, err = ParseLogDate(d)
 	if err != nil {
-		t.Error(string(d), year, month, day, string(pre), string(post), err)
+		t.Error(d, year, month, day, pre, post, err)
 	}
 	if year != 2003 || month != 1 || day != 3 {
-		t.Error(string(d), year, month, day, string(pre), string(post), err)
+		t.Error(d, year, month, day, pre, post, err)
 	}
-	if string(pre) != "hello" {
-		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	if pre != "hello" {
+		t.Error(d, year, month, day, pre, post, err)
 	}
-	if string(post) != "world" {
-		t.Error(string(d), year, month, day, string(pre), string(post), err)
+	if post != "world" {
+		t.Error(d, year, month, day, pre, post, err)
 	}
 }
 
 func TestParseLogDateErr(t *testing.T) {
-	dates := [][]byte{
-		[]byte("hello(2003/01/03"),
-		[]byte("hello 2003/01/03)"),
-		[]byte("hello 2003/01/03 "),
-		[]byte("hello(203/01/03)"),
-		[]byte("hello(world)"),
-		[]byte("hello ( 2003/01/03   )) "),
-		[]byte("hello ( 2003/01/03   )   ) "),
-		[]byte("hello ((((( 2003/01/03   )   ) "),
-		[]byte("hello( 2003-01-03) world"),
-		[]byte("hello　　( 2003-01-03 ) world"),
-		[]byte("(2003/1/3) hello world"),
+	dates := []string{
+		"hello(2003/01/03",
+		"hello 2003/01/03)",
+		"hello 2003/01/03 ",
+		"hello(203/01/03)",
+		"hello(world)",
+		"hello ( 2003/01/03   )) ",
+		"hello ( 2003/01/03   )   ) ",
+		"hello ((((( 2003/01/03   )   ) ",
+		"hello( 2003-01-03) world",
+		"hello　　( 2003-01-03 ) world",
+		"(2003/1/3) hello world",
 	}
 
 	for _, d := range dates {
 		year, month, day, pre, post, err := ParseLogDate(d)
 		if err == nil {
-			t.Error(string(d), year, month, day, string(pre), string(post))
+			t.Error(d, year, month, day, pre, post)
 		}
 	}
 }

@@ -2,7 +2,6 @@ package dptxt
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"io"
 	"log"
@@ -112,18 +111,18 @@ type Section struct {
 
 type Paragraph struct {
 	Linenum    int
-	Value      [][]byte
+	Value      []string
 	Error      error
 	Time       *time.Time
-	TimeSuffix []byte
+	TimeSuffix string
 }
 
 func (p *Paragraph) String() string {
-	return string(bytes.Join(p.Value, []byte("\\n")))
+	return strings.Join(p.Value, `\n`)
 }
 
 func NewTextParagraph(t string) *Paragraph {
-	ps := append(make([][]byte, 0), []byte(t))
+	ps := append(make([]string, 0), t)
 	return &Paragraph{Linenum: -1, Value: ps}
 }
 
@@ -161,38 +160,36 @@ func (s *Section) PeekString() string {
 	return s.peekedValue
 }
 
-func (s *Section) PeekBytes() []byte {
-	if len(s.Value) == 0 {
-		return emptyBytes
-	}
-	if len(s.Value[0].Value) == 0 {
-		return emptyBytes
-	}
-	return s.Value[0].Value[0]
-}
+// func (s *Section) PeekBytes() []byte {
+// 	if len(s.Value) == 0 {
+// 		return emptyBytes
+// 	}
+// 	if len(s.Value[0].Value) == 0 {
+// 		return emptyBytes
+// 	}
+// 	return s.Value[0].Value[0]
+// }
 
 type lineScanner struct {
 	scanner  *bufio.Scanner
-	lastline []byte
+	lastline string
 	unread   bool
 	Filename string
 	Linenum  int
 }
 
 func newLineScanner(filename string, r io.Reader) *lineScanner {
-	return &lineScanner{bufio.NewScanner(r), nil, false, filename, 0}
+	return &lineScanner{bufio.NewScanner(r), "", false, filename, 0}
 }
 
-func (ls *lineScanner) nextLine() ([]byte, error) {
-	if ls.unread && ls.lastline != nil {
+func (ls *lineScanner) nextLine() (string, error) {
+	if ls.unread {
 		ls.unread = false
 		ls.Linenum++
 		return ls.lastline, nil
 	}
 	if ls.scanner.Scan() {
-		b := ls.scanner.Bytes()
-		t := make([]byte, len(b), len(b))
-		copy(t, b)
+		t := ls.scanner.Text()
 		ls.lastline = t
 		ls.unread = false
 		ls.Linenum++
@@ -204,7 +201,7 @@ func (ls *lineScanner) nextLine() ([]byte, error) {
 		// エラーはnilになる。なので、敢えてio.EOFにして非nilな返り値を返すようにする。
 		err = io.EOF
 	}
-	return nil, err
+	return "", err
 }
 
 // 空白行を読み飛ばす。
@@ -212,7 +209,7 @@ func (ls *lineScanner) SkipEmptyLines() (int, error) {
 	n := 0
 	line, err := ls.nextLine()
 	for err == nil {
-		line = bytes.TrimLeftFunc(line, isSp)
+		line = strings.TrimLeftFunc(line, isSp)
 		if len(line) > 0 {
 			break
 		}
@@ -249,7 +246,7 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 		return empty, ls.NewParseError(err)
 	}
 	linenum := ls.Linenum
-	line = bytes.TrimLeftFunc(line, isSp)
+	line = strings.TrimLeftFunc(line, isSp)
 
 	// セクション名の始まり
 	i, s := IndexFuncWithSize(line, isAt)
@@ -270,8 +267,8 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 	line = line[i+s:]
 
 	// セクション本文の始まり
-	var head []byte = nil
-	line = bytes.TrimFunc(line, isSp)
+	var head string
+	line = strings.TrimFunc(line, isSp)
 	if len(line) > 0 {
 		head = line
 	}
@@ -283,20 +280,20 @@ func processSection(ls *lineScanner, sec *Section) (string, error) {
 	return name, nil
 }
 
-func readCompoundValues(ls *lineScanner, head []byte) ([]*Paragraph, error) {
+func readCompoundValues(ls *lineScanner, head string) ([]*Paragraph, error) {
 	values := make([]*Paragraph, 0)
-	pvalues := make([][]byte, 0)
+	pvalues := make([]string, 0)
 	var linenum int
-	if head != nil {
+	if len(head) > 0 {
 		linenum = ls.Linenum
 		pvalues = append(pvalues, head)
 	}
 
 	line, err := ls.nextLine()
 	for err == nil {
-		line = bytes.TrimFunc(line, isSp)
+		line = strings.TrimFunc(line, isSp)
 		if len(line) > 0 {
-			if bytes.IndexFunc(line, isAt) == 0 { // 次のセクションまで来た。
+			if strings.IndexFunc(line, isAt) == 0 { // 次のセクションまで来た。
 				ls.UnreadLine()
 				break
 			} else {
@@ -308,7 +305,7 @@ func readCompoundValues(ls *lineScanner, head []byte) ([]*Paragraph, error) {
 		} else {
 			if len(pvalues) > 0 {
 				values = append(values, &Paragraph{Linenum: linenum, Value: pvalues})
-				pvalues = make([][]byte, 0)
+				pvalues = make([]string, 0)
 			}
 		}
 		line, err = ls.nextLine()
@@ -345,30 +342,18 @@ func ParseDocument(filename string, r io.Reader, doc *Document) error {
 	return nil
 }
 
-func normalizeText(b []byte) (string, error) {
-	ps := make([][]byte, 0)
-	b = bytes.TrimLeftFunc(b, isSp)
-	for len(b) > 0 {
-		i := bytes.IndexFunc(b, isSp)
-		if i > 0 {
-			ps = append(ps, b[:i])
-			b = b[i:]
-		} else if i < 0 {
-			ps = append(ps, b)
-			break
-		}
-		b = bytes.TrimLeftFunc(b, isSp)
-	}
+func normalizeText(b string) (string, error) {
+	ps := strings.FieldsFunc(b, isSp)
 	if len(ps) == 0 {
 		return empty, ErrorSectionNameIsEmpty
 	}
-	return string(bytes.Join(ps, []byte(" "))), nil
+	return strings.Join(ps, " "), nil
 }
 
-func IndexFuncWithSize(b []byte, f func(r rune) bool) (int, int) {
+func IndexFuncWithSize(b string, f func(r rune) bool) (int, int) {
 	i := 0
 	for len(b) > 0 {
-		r, s := utf8.DecodeRune(b)
+		r, s := utf8.DecodeRuneInString(b)
 		if f(r) {
 			return i, s
 		}
@@ -378,12 +363,12 @@ func IndexFuncWithSize(b []byte, f func(r rune) bool) (int, int) {
 	return -1, 0
 }
 
-func LastIndexFuncWithSize(b []byte, f func(r rune) bool) (int, int) {
+func LastIndexFuncWithSize(b string, f func(r rune) bool) (int, int) {
 	i := 0
 	index := -1
 	size := 0
 	for len(b) > 0 {
-		r, s := utf8.DecodeRune(b)
+		r, s := utf8.DecodeRuneInString(b)
 		if f(r) {
 			index = i
 			size = s
@@ -394,8 +379,8 @@ func LastIndexFuncWithSize(b []byte, f func(r rune) bool) (int, int) {
 	return index, size
 }
 
-func DecodeSingleDigit(b []byte) (rune, int, int) {
-	r, s := utf8.DecodeRune(b)
+func DecodeSingleDigit(b string) (rune, int, int) {
+	r, s := utf8.DecodeRuneInString(b)
 	switch r {
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		return r, int(r - '0'), s
@@ -406,7 +391,7 @@ func DecodeSingleDigit(b []byte) (rune, int, int) {
 	}
 }
 
-func DecodeDigit(b []byte) ([]byte, int, rune, int) {
+func DecodeDigit(b string) (string, int, rune, int) {
 	var (
 		r rune
 		s int
@@ -505,7 +490,7 @@ var monthSuffixes map[rune]rune = map[rune]rune{
 	'．':      '.',
 }
 
-func ParseDate(b []byte) (int, int, int, []byte, error) {
+func ParseDate(b string) (int, int, int, string, error) {
 	var (
 		year, month, day       int = 0, 0, 0
 		monthsuffix, daysuffix rune
@@ -513,25 +498,25 @@ func ParseDate(b []byte) (int, int, int, []byte, error) {
 		n, s                   int
 	)
 
-	b = bytes.TrimLeftFunc(b, isSp)
+	b = strings.TrimLeftFunc(b, isSp)
 
 	b, year, r, n = DecodeDigit(b)
 	if r == utf8.RuneError {
-		return year, month, day, nil, ErrorInvalidDateFormat
+		return year, month, day, "", ErrorInvalidDateFormat
 	} else if n != 4 {
-		return year, month, day, nil, ErrorYearIsOutOfRange
+		return year, month, day, "", ErrorYearIsOutOfRange
 	}
 
-	b = bytes.TrimLeftFunc(b, isSp)
+	b = strings.TrimLeftFunc(b, isSp)
 
 	// 年のサフィックスをデコード
-	r, s = utf8.DecodeRune(b)
+	r, s = utf8.DecodeRuneInString(b)
 	if r == utf8.RuneError {
-		return year, month, day, nil, ErrorInvalidDateFormat
+		return year, month, day, "", ErrorInvalidDateFormat
 	}
 	monthsuffix, ok := year2monthSuffix[r]
 	if !ok {
-		return year, month, day, nil, ErrorInvalidDateFormat
+		return year, month, day, "", ErrorInvalidDateFormat
 	}
 	if r == '年' {
 		daysuffix = '日'
@@ -540,64 +525,64 @@ func ParseDate(b []byte) (int, int, int, []byte, error) {
 	}
 	b = b[s:]
 
-	b = bytes.TrimLeftFunc(b, isSp)
+	b = strings.TrimLeftFunc(b, isSp)
 
 	b, month, r, n = DecodeDigit(b)
 	if r == utf8.RuneError {
-		return year, month, day, nil, ErrorInvalidDateFormat
+		return year, month, day, "", ErrorInvalidDateFormat
 	} else if n == 0 {
-		return year, month, day, nil, ErrorNoMonthSpecified
+		return year, month, day, "", ErrorNoMonthSpecified
 	} else if n > 2 {
-		return year, month, day, nil, ErrorMonthIsOutOfRange
+		return year, month, day, "", ErrorMonthIsOutOfRange
 	}
 
-	b = bytes.TrimLeftFunc(b, isSp)
+	b = strings.TrimLeftFunc(b, isSp)
 
 	// 月のサフィックスをデコード
-	r, s = utf8.DecodeRune(b)
+	r, s = utf8.DecodeRuneInString(b)
 	if r == utf8.RuneError {
-		return year, month, day, nil, ErrorInvalidDateFormat
+		return year, month, day, "", ErrorInvalidDateFormat
 	}
 	if ms, ok := monthSuffixes[r]; !ok || ms != monthsuffix {
-		return year, month, day, nil, ErrorInvalidMonthSuffix
+		return year, month, day, "", ErrorInvalidMonthSuffix
 	}
 	b = b[s:]
 
-	b = bytes.TrimLeftFunc(b, isSp)
+	b = strings.TrimLeftFunc(b, isSp)
 
 	b, day, r, n = DecodeDigit(b)
 	if r == utf8.RuneError && len(b) > 0 { // 終端まで逹っしていないのにエラー
-		return year, month, day, nil, ErrorInvalidDateFormat
+		return year, month, day, "", ErrorInvalidDateFormat
 	} else if n == 0 {
-		return year, month, day, nil, ErrorNoDaySpecified
+		return year, month, day, "", ErrorNoDaySpecified
 	} else if n > 2 {
-		return year, month, day, nil, ErrorDayIsOutOfRange
+		return year, month, day, "", ErrorDayIsOutOfRange
 	}
 
 	// 日のサフィックスをデコード(ある場合のみ)
 	if daysuffix != 0 {
-		b = bytes.TrimLeftFunc(b, isSp)
+		b = strings.TrimLeftFunc(b, isSp)
 
-		r, s = utf8.DecodeRune(b)
+		r, s = utf8.DecodeRuneInString(b)
 		if r == utf8.RuneError {
-			return year, month, day, nil, ErrorInvalidDateFormat
+			return year, month, day, "", ErrorInvalidDateFormat
 		}
 		if r != daysuffix {
-			return year, month, day, nil, ErrorInvalidDaySuffix
+			return year, month, day, "", ErrorInvalidDaySuffix
 		}
 		b = b[s:] // 日のサフィックスを読み飛す
-		r, s = utf8.DecodeRune(b)
+		r, s = utf8.DecodeRuneInString(b)
 	}
 
 	// 日付けの直後の文字がないか、空白でなければエラー
 	if len(b) == 0 || isSp(r) {
-		return year, month, day, bytes.TrimFunc(b, isSp), nil
+		return year, month, day, strings.TrimFunc(b, isSp), nil
 	}
-	return year, month, day, nil, ErrorUnknownDateSuffix
+	return year, month, day, "", ErrorUnknownDateSuffix
 }
 
-// 日付より前の部分と、カッコの中の日付より後ろの部分も返す。
-func ParseLogDate(b []byte) (int, int, int, []byte, []byte, error) {
+// ParseLogDate 日付より前の部分と、カッコの中の日付より後ろの部分も返す。
+func ParseLogDate(b string) (int, int, int, string, string, error) {
 	var (
 		year, month, day int
 		i, s             int
@@ -605,18 +590,18 @@ func ParseLogDate(b []byte) (int, int, int, []byte, []byte, error) {
 	)
 	i, s = LastIndexFuncWithSize(b, isOpenParenthesis)
 	if i < 0 {
-		return year, month, day, nil, nil, ErrorNoOpenParenthesis
+		return year, month, day, "", "", ErrorNoOpenParenthesis
 	}
 	pre := b[:i] // 日付けよりも前の部分
 	b = b[i+s:]
 	// 最後の左括弧から一番近い右括弧までの間を日付が入っていると想定してパースする。
 	i, s = IndexFuncWithSize(b, isCloseParenthesis)
 	if i < 0 {
-		return year, month, day, pre, nil, ErrorNoCloseParenthesis
+		return year, month, day, pre, "", ErrorNoCloseParenthesis
 	}
 	// 閉じカッコの後に文字が続く場合は、日付けとみなさない。
-	if len(bytes.TrimLeftFunc(b[i+s:], isSp)) > 0 {
-		return year, month, day, pre, nil, ErrorExtraTextAfterDate
+	if len(strings.TrimLeftFunc(b[i+s:], isSp)) > 0 {
+		return year, month, day, pre, "", ErrorExtraTextAfterDate
 	}
 	year, month, day, post, err := ParseDate(b[:i])
 	return year, month, day, pre, post, err

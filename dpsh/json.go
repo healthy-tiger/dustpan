@@ -49,7 +49,7 @@ func jsonWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
 
 	if para.Time != nil {
 		year, month, day := para.Time.Date()
-		if byteIsNilOrEmpty(para.TimeSuffix) {
+		if len(para.TimeSuffix) == 0 {
 			_, err = w.WriteString(fmt.Sprintf(jsonParaDateFmt, year, int(month), day))
 		} else {
 			_, err = w.WriteString(fmt.Sprintf(jsonParaDateWithSuffixFmt, year,

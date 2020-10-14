@@ -316,7 +316,7 @@ func preprocessDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
 				if len(c.Value[0].Value) > 1 {
 					c.Error = NewValueError(doc.Filename, c.Value[0].Linenum, ErrorMultipleValue)
 				} else {
-					pb := c.PeekBytes()
+					pb := c.PeekString()
 					year, month, day, post, err := dptxt.ParseDate(pb)
 					if err != nil {
 						c.Error = NewValueError(doc.Filename, c.Linenum, err)

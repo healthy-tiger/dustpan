@@ -15,7 +15,7 @@ func csvWriteParagraph(para *dptxt.Paragraph, w *bufio.Writer) error {
 		if err != nil {
 			return err
 		}
-		_, err = w.Write(v)
+		_, err = w.WriteString(v)
 		if err != nil {
 			return err
 		}
