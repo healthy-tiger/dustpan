@@ -223,7 +223,8 @@ func LoadFile(filename string, doc *dptxt.Document) error {
 	return nil
 }
 
-func sortDocs(config *DustpanConfig, docs []*dptxt.Document) {
+// SortDocs 設定に基づいて文書をソートする。
+func SortDocs(config *DustpanConfig, docs []*dptxt.Document) {
 	if len(config.SortOrder) == 0 {
 		return
 	}
@@ -369,7 +370,8 @@ func preprocessDoc(config *DustpanConfig, now *time.Time, doc *dptxt.Document) {
 	}
 }
 
-func preprocessAllDocs(config *DustpanConfig, docs []*dptxt.Document) {
+// PreprocessAllDocs 全ての文書に前処理を施す。
+func PreprocessAllDocs(config *DustpanConfig, docs []*dptxt.Document) {
 	if config.ColumnDefs == nil || len(config.ColumnDefs) == 0 {
 		return
 	}
@@ -379,40 +381,6 @@ func preprocessAllDocs(config *DustpanConfig, docs []*dptxt.Document) {
 	for _, d := range docs {
 		preprocessDoc(config, &now, d)
 	}
-}
-
-// DoMain configpathで指定される設定ファイルの内容に従って処理を実行する。
-func DoMain(configpath string) {
-	configname, err := filepath.Abs(configpath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var config DustpanConfig
-	err = LoadConfig(configname, &config)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	basepath := filepath.Dir(configname)
-
-	docs := LoadAllFiles(basepath, config.SrcPath)
-
-	preprocessAllDocs(&config, docs)
-	sortDocs(&config, docs)
-
-	err = WriteCsv(basepath, &config, docs)
-	if err != nil {
-		log.Println("csv", err)
-	}
-	err = WriteHTML(basepath, &config, docs)
-	if err != nil {
-		log.Println("html", err)
-	}
-	// err = WriteJSON(basepath, &config, docs)
-	// if err != nil {
-	// 	log.Println("json", err)
-	// }
 }
 
 const tempfileTemplate = "_dustpan_%s.*.tmp"

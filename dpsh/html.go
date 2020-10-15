@@ -197,7 +197,8 @@ func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Writ
 	return nil
 }
 
-func writeTo(w *bufio.Writer, basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
+// WriteHTMLTo 設定に基づいて指定されたストリームにHTMLを書き出す。
+func WriteHTMLTo(w *bufio.Writer, basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
 	if len(config.HTML.Header) > 0 {
 		w.WriteString(config.HTML.Header)
 	}
@@ -363,5 +364,5 @@ func WriteHTML(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 		w = bufio.NewWriter(tmpfile)
 	}
 
-	return writeTo(w, basepath, config, docs)
+	return WriteHTMLTo(w, basepath, config, docs)
 }
