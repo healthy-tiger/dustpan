@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -39,14 +40,22 @@ func main() {
 	basepath := filepath.Dir(configname)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		docs := dpsh.LoadAllFiles(basepath, config.SrcPath)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if req.URL.Path != "" && req.URL.Path != "/" {
+			w.WriteHeader(http.StatusNotFound)
+			io.WriteString(w, `<h1>Not Found</h1>`)
+		} else {
 
-		dpsh.PreprocessAllDocs(&config, docs)
-		dpsh.SortDocs(&config, docs)
+			docs := dpsh.LoadAllFiles(basepath, config.SrcPath)
 
-		err = dpsh.WriteHTMLTo(w, basepath, &config, docs)
-		if err != nil {
-			log.Println("html", err)
+			dpsh.PreprocessAllDocs(&config, docs)
+			dpsh.SortDocs(&config, docs)
+
+			w.WriteHeader(http.StatusOK)
+			err = dpsh.WriteHTMLTo(w, basepath, &config, docs)
+			if err != nil {
+				log.Println("html", err)
+			}
 		}
 	})
 
