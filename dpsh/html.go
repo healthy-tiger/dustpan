@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -198,7 +199,9 @@ func htmlWriteDocument(config *DustpanConfig, doc *dptxt.Document, w *bufio.Writ
 }
 
 // WriteHTMLTo 設定に基づいて指定されたストリームにHTMLを書き出す。
-func WriteHTMLTo(w *bufio.Writer, basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
+func WriteHTMLTo(dst io.Writer, basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
+	w := bufio.NewWriter(dst)
+
 	if len(config.HTML.Header) > 0 {
 		w.WriteString(config.HTML.Header)
 	}
@@ -343,11 +346,11 @@ func WriteHTMLTo(w *bufio.Writer, basepath string, config *DustpanConfig, docs [
 
 // WriteHTML 設定ファイルに従ってHTML出力を実行する。
 func WriteHTML(basepath string, config *DustpanConfig, docs []*dptxt.Document) error {
-	var w *bufio.Writer
+	var w io.Writer
 
 	if len(config.HTML.DstPath) == 0 {
 		// 出力先の指定がない場合は標準出力に出力する。
-		w = bufio.NewWriter(os.Stdout)
+		w = os.Stdout
 	} else {
 		dstname := normalizePath(basepath, config.HTML.DstPath)
 
@@ -361,7 +364,7 @@ func WriteHTML(basepath string, config *DustpanConfig, docs []*dptxt.Document) e
 			closeTempFile(dstname, tmpfile, err)
 		}()
 
-		w = bufio.NewWriter(tmpfile)
+		w = tmpfile
 	}
 
 	return WriteHTMLTo(w, basepath, config, docs)
